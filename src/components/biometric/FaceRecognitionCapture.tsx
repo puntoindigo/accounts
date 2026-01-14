@@ -13,6 +13,8 @@ interface FaceRecognitionCaptureProps {
   title?: string;
   description?: string;
   actionLabel?: string;
+  autoCaptureOnDetect?: boolean;
+  autoCaptureCooldownMs?: number;
 }
 
 export default function FaceRecognitionCapture({
@@ -23,7 +25,9 @@ export default function FaceRecognitionCapture({
   defaultExpanded = false,
   title = 'Reconocimiento Facial',
   description = 'Captura y registra el descriptor facial del empleado.',
-  actionLabel = 'Capturar Rostro'
+  actionLabel = 'Capturar Rostro',
+  autoCaptureOnDetect = false,
+  autoCaptureCooldownMs = 2000
 }: FaceRecognitionCaptureProps) {
   const { state, loadModels, detectFace, detectFaceBox, stopDetection } = useFaceRecognition();
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -32,6 +36,7 @@ export default function FaceRecognitionCapture({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [faceDetection, setFaceDetection] = useState<any | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [autoCaptureBlocked, setAutoCaptureBlocked] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -79,6 +84,22 @@ export default function FaceRecognitionCapture({
           ctx.lineWidth = 3;
           ctx.strokeRect(box.x, box.y, box.width, box.height);
         }
+
+        if (
+          autoCaptureOnDetect &&
+          !autoCaptureBlocked &&
+          detection?.detection?.score > 0.6 &&
+          !state.isDetecting
+        ) {
+          setAutoCaptureBlocked(true);
+          const descriptor = await detectFace(videoRef.current);
+          if (descriptor) {
+            onDescriptorCaptured(descriptorToArray(descriptor));
+          }
+          setTimeout(() => {
+            setAutoCaptureBlocked(false);
+          }, autoCaptureCooldownMs);
+        }
       }, 120);
     }
 
@@ -87,7 +108,17 @@ export default function FaceRecognitionCapture({
         clearInterval(detectionIntervalRef.current);
       }
     };
-  }, [isStreaming, state.isModelLoaded, detectFaceBox]);
+  }, [
+    isStreaming,
+    state.isModelLoaded,
+    detectFaceBox,
+    detectFace,
+    onDescriptorCaptured,
+    autoCaptureOnDetect,
+    autoCaptureCooldownMs,
+    autoCaptureBlocked,
+    state.isDetecting
+  ]);
 
   useEffect(() => {
     return () => {

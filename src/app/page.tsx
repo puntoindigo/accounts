@@ -32,6 +32,12 @@ interface LoginEvent {
   timestamp: string;
 }
 
+interface AuthConfig {
+  allowedGoogleEmails: string[];
+  allowedFaceLegajos: string[];
+  allowedFaceEmployeeIds: string[];
+}
+
 export default function Home() {
   const { data: session, status } = useSession();
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -46,6 +52,18 @@ export default function Home() {
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [loginEvents, setLoginEvents] = useState<LoginEvent[]>([]);
   const [loginLoading, setLoginLoading] = useState(false);
+  const [authConfig, setAuthConfig] = useState<AuthConfig>({
+    allowedGoogleEmails: [],
+    allowedFaceLegajos: [],
+    allowedFaceEmployeeIds: []
+  });
+  const [authConfigSaving, setAuthConfigSaving] = useState(false);
+  const [authConfigMessage, setAuthConfigMessage] = useState<string | null>(null);
+  const [authConfigForm, setAuthConfigForm] = useState({
+    allowedGoogleEmails: '',
+    allowedFaceLegajos: '',
+    allowedFaceEmployeeIds: ''
+  });
 
   const selectedEmployee = useMemo(
     () => employees.find(emp => emp.id === selectedEmployeeId) || null,
@@ -79,12 +97,30 @@ export default function Home() {
     }
   }, []);
 
+  const loadAuthConfig = useCallback(async () => {
+    try {
+      const response = await fetch('/api/auth-config', { cache: 'no-store' });
+      const data = await response.json();
+      if (response.ok && data?.config) {
+        setAuthConfig(data.config as AuthConfig);
+        setAuthConfigForm({
+          allowedGoogleEmails: (data.config.allowedGoogleEmails || []).join(', '),
+          allowedFaceLegajos: (data.config.allowedFaceLegajos || []).join(', '),
+          allowedFaceEmployeeIds: (data.config.allowedFaceEmployeeIds || []).join(', ')
+        });
+      }
+    } catch {
+      setAuthConfigMessage('No se pudo cargar la configuración de acceso.');
+    }
+  }, []);
+
   useEffect(() => {
     if (status === 'authenticated') {
       loadEmployees();
       loadLoginEvents();
+      loadAuthConfig();
     }
-  }, [loadEmployees, loadLoginEvents, status]);
+  }, [loadEmployees, loadLoginEvents, loadAuthConfig, status]);
 
   const handleCreateEmployee = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -189,6 +225,44 @@ export default function Home() {
     }
   };
 
+  const handleSaveAuthConfig = async () => {
+    setAuthConfigSaving(true);
+    setAuthConfigMessage(null);
+    const payload = {
+      allowedGoogleEmails: authConfigForm.allowedGoogleEmails
+        .split(',')
+        .map(value => value.trim().toLowerCase())
+        .filter(Boolean),
+      allowedFaceLegajos: authConfigForm.allowedFaceLegajos
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean),
+      allowedFaceEmployeeIds: authConfigForm.allowedFaceEmployeeIds
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean)
+    };
+
+    try {
+      const response = await fetch('/api/auth-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setAuthConfigMessage(data?.error || 'No se pudo guardar la configuración.');
+      } else {
+        setAuthConfig(data.config as AuthConfig);
+        setAuthConfigMessage('Configuración actualizada.');
+      }
+    } catch {
+      setAuthConfigMessage('No se pudo guardar la configuración.');
+    } finally {
+      setAuthConfigSaving(false);
+    }
+  };
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center">
@@ -231,6 +305,7 @@ export default function Home() {
                 title="Login biométrico"
                 description="Captura tu rostro para iniciar sesión."
                 actionLabel="Iniciar sesión"
+                autoCaptureOnDetect={true}
               />
             </div>
           </div>
@@ -445,6 +520,63 @@ export default function Home() {
               ))}
             </div>
           )}
+        </section>
+
+        <section className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Accesos autorizados</h2>
+            <span className="text-xs text-slate-500">
+              Listas vacías permiten acceso libre
+            </span>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Google (emails)</label>
+              <textarea
+                value={authConfigForm.allowedGoogleEmails}
+                onChange={(event) => setAuthConfigForm(prev => ({ ...prev, allowedGoogleEmails: event.target.value }))}
+                className="w-full rounded border border-slate-200 px-3 py-2 text-sm min-h-[96px]"
+                placeholder="email1@dominio.com, email2@dominio.com"
+              />
+              <p className="text-xs text-slate-500">
+                Separá con coma. Se comparan en minúsculas.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Rostro (legajos)</label>
+              <textarea
+                value={authConfigForm.allowedFaceLegajos}
+                onChange={(event) => setAuthConfigForm(prev => ({ ...prev, allowedFaceLegajos: event.target.value }))}
+                className="w-full rounded border border-slate-200 px-3 py-2 text-sm min-h-[96px]"
+                placeholder="123, 456, 789"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Rostro (IDs internos)</label>
+            <textarea
+              value={authConfigForm.allowedFaceEmployeeIds}
+              onChange={(event) => setAuthConfigForm(prev => ({ ...prev, allowedFaceEmployeeIds: event.target.value }))}
+              className="w-full rounded border border-slate-200 px-3 py-2 text-sm min-h-[72px]"
+              placeholder="uuid1, uuid2"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSaveAuthConfig}
+              disabled={authConfigSaving}
+              className="rounded bg-slate-900 text-white px-4 py-2 text-sm disabled:opacity-60"
+            >
+              {authConfigSaving ? 'Guardando...' : 'Guardar accesos'}
+            </button>
+            {authConfigMessage && (
+              <span className="text-sm text-slate-600">{authConfigMessage}</span>
+            )}
+          </div>
+          <div className="text-xs text-slate-500">
+            Google autorizados: {authConfig.allowedGoogleEmails.length} · Rostro por legajo: {authConfig.allowedFaceLegajos.length} · Rostro por ID: {authConfig.allowedFaceEmployeeIds.length}
+          </div>
         </section>
       </div>
     </div>

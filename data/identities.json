@@ -1,4 +1,9 @@
 {
   "employees": [],
-  "loginEvents": []
+  "loginEvents": [],
+  "authConfig": {
+    "allowedGoogleEmails": [],
+    "allowedFaceLegajos": [],
+    "allowedFaceEmployeeIds": []
+  }
 }

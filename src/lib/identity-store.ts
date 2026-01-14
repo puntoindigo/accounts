@@ -22,9 +22,16 @@ export interface LoginEvent {
   timestamp: string;
 }
 
+export interface AuthConfig {
+  allowedGoogleEmails: string[];
+  allowedFaceLegajos: string[];
+  allowedFaceEmployeeIds: string[];
+}
+
 interface IdentityData {
   employees: Employee[];
   loginEvents?: LoginEvent[];
+  authConfig?: AuthConfig;
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -46,7 +53,12 @@ async function readData(): Promise<IdentityData> {
   const parsed = JSON.parse(raw) as IdentityData;
   return {
     employees: parsed.employees ?? [],
-    loginEvents: parsed.loginEvents ?? []
+    loginEvents: parsed.loginEvents ?? [],
+    authConfig: parsed.authConfig ?? {
+      allowedGoogleEmails: [],
+      allowedFaceLegajos: [],
+      allowedFaceEmployeeIds: []
+    }
   };
 }
 
@@ -187,4 +199,26 @@ export async function recordLoginEvent(event: Omit<LoginEvent, 'id' | 'timestamp
   data.loginEvents = loginEvents.slice(0, 100);
   await writeData(data);
   return entry;
+}
+
+export async function getAuthConfig(): Promise<AuthConfig> {
+  const data = await readData();
+  return data.authConfig ?? {
+    allowedGoogleEmails: [],
+    allowedFaceLegajos: [],
+    allowedFaceEmployeeIds: []
+  };
+}
+
+export async function updateAuthConfig(config: AuthConfig): Promise<AuthConfig> {
+  const data = await readData();
+  const normalized: AuthConfig = {
+    allowedGoogleEmails: config.allowedGoogleEmails.map(value => value.trim().toLowerCase()).filter(Boolean),
+    allowedFaceLegajos: config.allowedFaceLegajos.map(value => value.trim()).filter(Boolean),
+    allowedFaceEmployeeIds: config.allowedFaceEmployeeIds.map(value => value.trim()).filter(Boolean)
+  };
+
+  data.authConfig = normalized;
+  await writeData(data);
+  return normalized;
 }
