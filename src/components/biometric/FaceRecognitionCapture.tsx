@@ -15,6 +15,8 @@ interface FaceRecognitionCaptureProps {
   actionLabel?: string;
   autoCaptureOnDetect?: boolean;
   autoCaptureCooldownMs?: number;
+  autoCaptureDisabled?: boolean;
+  autoCaptureNoticeLabel?: string;
 }
 
 export default function FaceRecognitionCapture({
@@ -27,7 +29,9 @@ export default function FaceRecognitionCapture({
   description = 'Captura y registra el descriptor facial del empleado.',
   actionLabel = 'Capturar Rostro',
   autoCaptureOnDetect = false,
-  autoCaptureCooldownMs = 2000
+  autoCaptureCooldownMs = 2000,
+  autoCaptureDisabled = false,
+  autoCaptureNoticeLabel = 'Intentando iniciar sesión...'
 }: FaceRecognitionCaptureProps) {
   const { state, loadModels, detectFace, detectFaceBox, stopDetection } = useFaceRecognition();
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -37,6 +41,7 @@ export default function FaceRecognitionCapture({
   const [faceDetection, setFaceDetection] = useState<any | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [autoCaptureBlocked, setAutoCaptureBlocked] = useState(false);
+  const [autoCaptureNotice, setAutoCaptureNotice] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -87,17 +92,20 @@ export default function FaceRecognitionCapture({
 
         if (
           autoCaptureOnDetect &&
+          !autoCaptureDisabled &&
           !autoCaptureBlocked &&
           detection?.detection?.score > 0.6 &&
           !state.isDetecting
         ) {
           setAutoCaptureBlocked(true);
+          setAutoCaptureNotice(true);
           const descriptor = await detectFace(videoRef.current);
           if (descriptor) {
             onDescriptorCaptured(descriptorToArray(descriptor));
           }
           setTimeout(() => {
             setAutoCaptureBlocked(false);
+            setAutoCaptureNotice(false);
           }, autoCaptureCooldownMs);
         }
       }, 120);
@@ -117,7 +125,8 @@ export default function FaceRecognitionCapture({
     autoCaptureOnDetect,
     autoCaptureCooldownMs,
     autoCaptureBlocked,
-    state.isDetecting
+    state.isDetecting,
+    autoCaptureDisabled
   ]);
 
   useEffect(() => {
@@ -283,6 +292,11 @@ export default function FaceRecognitionCapture({
                 {isStreaming && faceDetection && (
                   <div className="absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium bg-slate-900/70 text-white">
                     {faceDetection.detection?.score > 0.5 ? 'Rostro detectado' : 'Ajustando...'}
+                  </div>
+                )}
+                {autoCaptureNotice && (
+                  <div className="absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium bg-emerald-600 text-white">
+                    {autoCaptureNoticeLabel}
                   </div>
                 )}
               </div>

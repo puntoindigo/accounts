@@ -50,6 +50,7 @@ export default function Home() {
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
   const [verificationResult, setVerificationResult] = useState<FaceMatchResult | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [faceLoginLocked, setFaceLoginLocked] = useState(false);
   const [loginEvents, setLoginEvents] = useState<LoginEvent[]>([]);
   const [loginLoading, setLoginLoading] = useState(false);
   const [authConfig, setAuthConfig] = useState<AuthConfig>({
@@ -214,6 +215,9 @@ export default function Home() {
   };
 
   const handleFaceLogin = async (descriptor: number[]) => {
+    if (faceLoginLocked) {
+      return;
+    }
     setAuthMessage(null);
     const result = await signIn('face', {
       redirect: false,
@@ -221,7 +225,8 @@ export default function Home() {
     });
 
     if (!result?.ok) {
-      setAuthMessage('No autorizado por reconocimiento facial.');
+      setAuthMessage('No autorizado por reconocimiento facial. Reintentá con Google.');
+      setFaceLoginLocked(true);
     }
   };
 
@@ -301,11 +306,13 @@ export default function Home() {
               <h2 className="text-lg font-semibold">Reconocimiento facial</h2>
               <FaceRecognitionCapture
                 onDescriptorCaptured={handleFaceLogin}
-                defaultExpanded={true}
+                defaultExpanded={false}
                 title="Login biométrico"
                 description="Captura tu rostro para iniciar sesión."
                 actionLabel="Iniciar sesión"
                 autoCaptureOnDetect={true}
+                autoCaptureDisabled={faceLoginLocked}
+                autoCaptureNoticeLabel="Intentando iniciar sesión..."
               />
             </div>
           </div>
