@@ -34,7 +34,9 @@ interface IdentityData {
   authConfig?: AuthConfig;
 }
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+const DATA_DIR = process.env.VERCEL
+  ? path.join('/tmp', 'accounts-data')
+  : path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'identities.json');
 
 async function ensureDataFile(): Promise<void> {
