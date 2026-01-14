@@ -64,6 +64,12 @@ export default function FaceRecognitionCapture({
   }, [isExpanded, state.isModelLoaded, isStreaming, isStartingCamera, cameraError]);
 
   useEffect(() => {
+    if (!isExpanded && isStreaming) {
+      stopStream();
+    }
+  }, [isExpanded, isStreaming]);
+
+  useEffect(() => {
     if (detectionIntervalRef.current) {
       clearInterval(detectionIntervalRef.current);
     }
