@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import FaceRecognitionCapture from '@/components/biometric/FaceRecognitionCapture';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
@@ -36,9 +36,75 @@ interface LoginEvent {
   timestamp: string;
 }
 
+function LoginGate({
+  onFaceLogin,
+  authMessage,
+  faceLoginLocked,
+  setAuthMessage
+}: {
+  onFaceLogin: (descriptor: number[]) => void;
+  authMessage: string | null;
+  faceLoginLocked: boolean;
+  setAuthMessage: (value: string | null) => void;
+}) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error === 'AccessDenied') {
+      setAuthMessage('Acceso denegado. Verificá que tu cuenta esté autorizada.');
+    }
+  }, [searchParams, setAuthMessage]);
+
+  return (
+    <div className="min-h-screen bg-blue-600 text-slate-900 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-semibold text-slate-900">Sistema de Identidad</h1>
+          <p className="text-sm text-slate-500">Selecciona un método de acceso</p>
+        </div>
+
+        <button
+          type="button"
+          className="w-full rounded-lg bg-blue-600 text-white py-2 text-sm font-medium shadow"
+          onClick={() => signIn('google')}
+        >
+          Acceder con Gmail
+        </button>
+
+        <div className="flex items-center gap-3 text-xs text-slate-400">
+          <span className="flex-1 border-t border-slate-200" />
+          o
+          <span className="flex-1 border-t border-slate-200" />
+        </div>
+
+        <div className="rounded-lg border border-slate-200 p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-slate-700">Reconocimiento facial</h2>
+          <FaceRecognitionAutoCapture
+            onDescriptorCaptured={onFaceLogin}
+            defaultExpanded={false}
+            title="Login biométrico"
+            description="Captura tu rostro para iniciar sesión."
+            actionLabel="Iniciar sesión"
+            noticeLabel="Intentando iniciar sesión..."
+            autoCaptureDisabled={faceLoginLocked}
+          />
+        </div>
+
+        {authMessage && (
+          <p className="text-xs text-red-600 text-center">{authMessage}</p>
+        )}
+
+        <p className="text-xs text-center text-slate-400">
+          © 2026 Desarrollado por Punto Indigo
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const { data: session, status } = useSession();
-  const searchParams = useSearchParams();
   const [persons, setPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,13 +157,6 @@ export default function Home() {
       loadLoginEvents();
     }
   }, [loadPersons, loadLoginEvents, status]);
-
-  useEffect(() => {
-    const error = searchParams.get('error');
-    if (error === 'AccessDenied') {
-      setAuthMessage('Acceso denegado. Verificá que tu cuenta esté autorizada.');
-    }
-  }, [searchParams]);
 
   const handleCreatePerson = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -233,49 +292,20 @@ export default function Home() {
 
   if (status !== 'authenticated') {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center">
-        <div className="w-full max-w-3xl mx-auto px-6 py-12 space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-semibold">Accounts — Acceso</h1>
-            <p className="text-sm text-slate-600">
-              Iniciá sesión con Google o reconocimiento facial para acceder.
-            </p>
+      <Suspense
+        fallback={(
+          <div className="min-h-screen bg-blue-600 flex items-center justify-center">
+            <p className="text-sm text-white">Cargando acceso...</p>
           </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
-              <h2 className="text-lg font-semibold">Cuenta Google</h2>
-              <p className="text-sm text-slate-600">
-                Solo cuentas autorizadas podrán ingresar.
-              </p>
-              <button
-                type="button"
-                className="w-full rounded bg-slate-900 text-white py-2 text-sm"
-                onClick={() => signIn('google')}
-              >
-                Iniciar sesión con Google
-              </button>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
-              <h2 className="text-lg font-semibold">Reconocimiento facial</h2>
-              <FaceRecognitionAutoCapture
-                onDescriptorCaptured={handleFaceLogin}
-                defaultExpanded={false}
-                title="Login biométrico"
-                description="Captura tu rostro para iniciar sesión."
-                actionLabel="Iniciar sesión"
-                noticeLabel="Intentando iniciar sesión..."
-                autoCaptureDisabled={faceLoginLocked}
-              />
-            </div>
-          </div>
-
-          {authMessage && (
-            <p className="text-sm text-red-600 text-center">{authMessage}</p>
-          )}
-        </div>
-      </div>
+        )}
+      >
+        <LoginGate
+          onFaceLogin={handleFaceLogin}
+          authMessage={authMessage}
+          faceLoginLocked={faceLoginLocked}
+          setAuthMessage={setAuthMessage}
+        />
+      </Suspense>
     );
   }
 
