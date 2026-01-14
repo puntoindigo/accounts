@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import FaceRecognitionCapture from '@/components/biometric/FaceRecognitionCapture';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
+import { useSearchParams } from 'next/navigation';
 
 interface Person {
   id: string;
@@ -37,6 +38,7 @@ interface LoginEvent {
 
 export default function Home() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
   const [persons, setPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +91,13 @@ export default function Home() {
       loadLoginEvents();
     }
   }, [loadPersons, loadLoginEvents, status]);
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error === 'AccessDenied') {
+      setAuthMessage('Acceso denegado. Verificá que tu cuenta esté autorizada.');
+    }
+  }, [searchParams]);
 
   const handleCreatePerson = async (event: React.FormEvent) => {
     event.preventDefault();

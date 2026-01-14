@@ -8,6 +8,10 @@ const normalizeEmail = (value: string | null | undefined) => (value || '').trim(
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
+  pages: {
+    signIn: '/',
+    error: '/'
+  },
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
