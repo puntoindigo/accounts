@@ -4,7 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { listPersons, recordLoginEvent, getPersonByEmail } from '@/lib/identity-store';
 import { findEmployeeByFace } from '@/lib/biometric/face-matcher';
 
-const normalizeEmail = (value: string | undefined) => (value || '').trim().toLowerCase();
+const normalizeEmail = (value: string | null | undefined) => (value || '').trim().toLowerCase();
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
