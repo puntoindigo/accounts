@@ -13,8 +13,18 @@ export interface Employee {
   updatedAt: string;
 }
 
+export interface LoginEvent {
+  id: string;
+  provider: string;
+  userId: string;
+  name: string;
+  email?: string | null;
+  timestamp: string;
+}
+
 interface IdentityData {
   employees: Employee[];
+  loginEvents?: LoginEvent[];
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -33,7 +43,11 @@ async function ensureDataFile(): Promise<void> {
 async function readData(): Promise<IdentityData> {
   await ensureDataFile();
   const raw = await fs.readFile(DATA_FILE, 'utf-8');
-  return JSON.parse(raw) as IdentityData;
+  const parsed = JSON.parse(raw) as IdentityData;
+  return {
+    employees: parsed.employees ?? [],
+    loginEvents: parsed.loginEvents ?? []
+  };
 }
 
 async function writeData(data: IdentityData): Promise<void> {
@@ -153,4 +167,24 @@ export async function safeReadEmployees(): Promise<Employee[]> {
     debugError('Error leyendo identidades:', error);
     return [];
   }
+}
+
+export async function listLoginEvents(): Promise<LoginEvent[]> {
+  const data = await readData();
+  return data.loginEvents ?? [];
+}
+
+export async function recordLoginEvent(event: Omit<LoginEvent, 'id' | 'timestamp'>): Promise<LoginEvent> {
+  const data = await readData();
+  const loginEvents = data.loginEvents ?? [];
+  const entry: LoginEvent = {
+    id: randomUUID(),
+    timestamp: new Date().toISOString(),
+    ...event
+  };
+
+  loginEvents.unshift(entry);
+  data.loginEvents = loginEvents.slice(0, 100);
+  await writeData(data);
+  return entry;
 }

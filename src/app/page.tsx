@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import FaceRecognitionCapture from '@/components/biometric/FaceRecognitionCapture';
 
 interface Employee {
@@ -22,7 +23,17 @@ interface FaceMatchResult {
   confidence: number;
 }
 
+interface LoginEvent {
+  id: string;
+  provider: string;
+  userId: string;
+  name: string;
+  email?: string | null;
+  timestamp: string;
+}
+
 export default function Home() {
+  const { data: session, status } = useSession();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +43,9 @@ export default function Home() {
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
   const [verificationResult, setVerificationResult] = useState<FaceMatchResult | null>(null);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [loginEvents, setLoginEvents] = useState<LoginEvent[]>([]);
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const selectedEmployee = useMemo(
     () => employees.find(emp => emp.id === selectedEmployeeId) || null,
@@ -52,9 +66,25 @@ export default function Home() {
     }
   }, []);
 
+  const loadLoginEvents = useCallback(async () => {
+    setLoginLoading(true);
+    try {
+      const response = await fetch('/api/logins', { cache: 'no-store' });
+      const data = await response.json();
+      setLoginEvents(Array.isArray(data.events) ? data.events : []);
+    } catch {
+      setLoginEvents([]);
+    } finally {
+      setLoginLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    loadEmployees();
-  }, [loadEmployees]);
+    if (status === 'authenticated') {
+      loadEmployees();
+      loadLoginEvents();
+    }
+  }, [loadEmployees, loadLoginEvents, status]);
 
   const handleCreateEmployee = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -147,14 +177,94 @@ export default function Home() {
     setVerificationResult(data.match as FaceMatchResult);
   };
 
+  const handleFaceLogin = async (descriptor: number[]) => {
+    setAuthMessage(null);
+    const result = await signIn('face', {
+      redirect: false,
+      descriptor: JSON.stringify(descriptor)
+    });
+
+    if (!result?.ok) {
+      setAuthMessage('No autorizado por reconocimiento facial.');
+    }
+  };
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center">
+        <p className="text-sm text-slate-600">Verificando sesión...</p>
+      </div>
+    );
+  }
+
+  if (status !== 'authenticated') {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center">
+        <div className="w-full max-w-3xl mx-auto px-6 py-12 space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-semibold">Accounts — Acceso</h1>
+            <p className="text-sm text-slate-600">
+              Iniciá sesión con Google o reconocimiento facial para acceder.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
+              <h2 className="text-lg font-semibold">Cuenta Google</h2>
+              <p className="text-sm text-slate-600">
+                Solo cuentas autorizadas podrán ingresar.
+              </p>
+              <button
+                type="button"
+                className="w-full rounded bg-slate-900 text-white py-2 text-sm"
+                onClick={() => signIn('google')}
+              >
+                Iniciar sesión con Google
+              </button>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
+              <h2 className="text-lg font-semibold">Reconocimiento facial</h2>
+              <FaceRecognitionCapture
+                onDescriptorCaptured={handleFaceLogin}
+                defaultExpanded={false}
+                title="Login biométrico"
+                description="Captura tu rostro para iniciar sesión."
+                actionLabel="Iniciar sesión"
+              />
+            </div>
+          </div>
+
+          {authMessage && (
+            <p className="text-sm text-red-600 text-center">{authMessage}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-10">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-semibold">Accounts — Identidad Biométrica</h1>
-          <p className="text-sm text-slate-600">
-            Este servicio centraliza el registro y verificación de identidad facial.
-          </p>
+        <header className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-semibold">Accounts — Identidad Biométrica</h1>
+            <p className="text-sm text-slate-600">
+              Este servicio centraliza el registro y verificación de identidad facial.
+            </p>
+          </div>
+          <div className="text-right space-y-2">
+            <p className="text-xs text-slate-500">
+              Sesión: {session?.user?.name || session?.user?.email || 'Usuario'}
+            </p>
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="rounded border border-slate-200 px-3 py-1 text-xs"
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </header>
 
         <section className="grid md:grid-cols-2 gap-6">
@@ -292,6 +402,49 @@ export default function Home() {
               </div>
             )}
           </div>
+        </section>
+
+        <section className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Últimos logins</h2>
+            <button
+              type="button"
+              onClick={loadLoginEvents}
+              className="text-xs text-slate-500"
+            >
+              Actualizar
+            </button>
+          </div>
+          {loginLoading ? (
+            <p className="text-sm text-slate-500">Cargando logins...</p>
+          ) : loginEvents.length === 0 ? (
+            <p className="text-sm text-slate-500">Sin registros todavía.</p>
+          ) : (
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {loginEvents.map(event => (
+                <div
+                  key={event.id}
+                  className="flex items-center justify-between border border-slate-100 rounded px-3 py-2 text-sm"
+                >
+                  <div>
+                    <p className="font-medium">{event.name}</p>
+                    <p className="text-xs text-slate-500">
+                      {event.provider.toUpperCase()} · {event.email || event.userId}
+                    </p>
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    {new Date(event.timestamp).toLocaleString('es-AR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>
