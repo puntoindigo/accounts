@@ -5,19 +5,19 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const employeeId = String(body?.employeeId || '').trim();
+  const personId = String(body?.personId || body?.employeeId || '').trim();
 
-  if (!employeeId) {
+  if (!personId) {
     return NextResponse.json(
-      { error: 'employeeId es requerido' },
+      { error: 'personId es requerido' },
       { status: 400 }
     );
   }
 
-  const employee = await clearFaceDescriptor(employeeId);
-  if (!employee) {
-    return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
+  const person = await clearFaceDescriptor(personId);
+  if (!person) {
+    return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
   }
 
-  return NextResponse.json({ employee });
+  return NextResponse.json({ person });
 }

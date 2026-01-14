@@ -1,27 +1,10 @@
 import type { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { listEmployees, recordLoginEvent, getAuthConfig } from '@/lib/identity-store';
+import { listPersons, recordLoginEvent, getPersonByEmail } from '@/lib/identity-store';
 import { findEmployeeByFace } from '@/lib/biometric/face-matcher';
 
-const parseList = (value: string | undefined, normalize?: (v: string) => string) =>
-  (value || '')
-    .split(',')
-    .map(item => (normalize ? normalize(item) : item).trim())
-    .filter(Boolean);
-
-const getAllowedLists = async () => {
-  const config = await getAuthConfig();
-  const envGoogle = parseList(process.env.ALLOWED_GOOGLE_EMAILS || process.env.OWNER_GOOGLE_EMAIL, value => value.toLowerCase());
-  const envFaceIds = parseList(process.env.ALLOWED_FACE_EMPLOYEE_IDS || process.env.OWNER_EMPLOYEE_ID);
-  const envFaceLegajos = parseList(process.env.ALLOWED_FACE_LEGAJOS || process.env.OWNER_LEGAJO);
-
-  const allowedGoogleEmails = Array.from(new Set([...envGoogle, ...config.allowedGoogleEmails]));
-  const allowedFaceEmployeeIds = Array.from(new Set([...envFaceIds, ...config.allowedFaceEmployeeIds]));
-  const allowedFaceLegajos = Array.from(new Set([...envFaceLegajos, ...config.allowedFaceLegajos]));
-
-  return { allowedGoogleEmails, allowedFaceEmployeeIds, allowedFaceLegajos };
-};
+const normalizeEmail = (value: string | undefined) => (value || '').trim().toLowerCase();
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
@@ -51,25 +34,20 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const employees = await listEmployees();
-        const match = findEmployeeByFace(descriptor, employees);
+        const persons = await listPersons();
+        const match = findEmployeeByFace(descriptor, persons);
         if (!match) return null;
 
-        const { allowedFaceEmployeeIds, allowedFaceLegajos } = await getAllowedLists();
-        if (allowedFaceEmployeeIds.length > 0 && !allowedFaceEmployeeIds.includes(match.id)) {
-          return null;
-        }
-        if (allowedFaceLegajos.length > 0 && !allowedFaceLegajos.includes(match.legajo)) {
-          return null;
-        }
+        const person = persons.find(item => item.id === match.id);
+        if (!person || !person.active) return null;
 
         return {
           id: match.id,
           name: match.nombre,
-          email: null,
+          email: match.email || null,
           image: null,
-          legajo: match.legajo,
           empresa: match.empresa,
+          isAdmin: person.isAdmin,
           provider: 'face'
         };
       }
@@ -78,9 +56,13 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === 'google') {
-        const email = user.email?.toLowerCase() || '';
-        const { allowedGoogleEmails } = await getAllowedLists();
-        if (allowedGoogleEmails.length > 0 && !allowedGoogleEmails.includes(email)) {
+        const email = normalizeEmail(user.email);
+        const persons = await listPersons();
+        if (persons.length === 0) {
+          return true;
+        }
+        const person = persons.find(item => item.email.toLowerCase() === email);
+        if (!person || !person.active) {
           return false;
         }
       }
@@ -91,8 +73,16 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name;
         token.email = user.email;
         token.provider = account?.provider;
-        token.legajo = (user as any).legajo;
         token.empresa = (user as any).empresa;
+        token.isAdmin = (user as any).isAdmin;
+      }
+      if (token.email && token.provider === 'google') {
+        const person = await getPersonByEmail(String(token.email));
+        if (person) {
+          token.personId = person.id;
+          token.empresa = person.empresa;
+          token.isAdmin = person.isAdmin;
+        }
       }
       return token;
     },
@@ -103,8 +93,9 @@ export const authOptions: NextAuthOptions = {
         email: token.email as string | undefined
       };
       (session as any).provider = token.provider;
-      (session as any).legajo = token.legajo;
       (session as any).empresa = token.empresa;
+      (session as any).isAdmin = token.isAdmin;
+      (session as any).personId = token.personId;
       return session;
     }
   },

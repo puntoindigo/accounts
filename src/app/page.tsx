@@ -4,19 +4,21 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import FaceRecognitionCapture from '@/components/biometric/FaceRecognitionCapture';
 
-interface Employee {
+interface Person {
   id: string;
-  legajo: string;
+  email: string;
   nombre: string;
   empresa: string;
   faceDescriptor: number[] | null;
+  active: boolean;
+  isAdmin: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 interface FaceMatchResult {
   id: string;
-  legajo: string;
+  email: string;
   nombre: string;
   empresa: string;
   distance: number;
@@ -32,20 +34,14 @@ interface LoginEvent {
   timestamp: string;
 }
 
-interface AuthConfig {
-  allowedGoogleEmails: string[];
-  allowedFaceLegajos: string[];
-  allowedFaceEmployeeIds: string[];
-}
-
 export default function Home() {
   const { data: session, status } = useSession();
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [persons, setPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [formData, setFormData] = useState({ legajo: '', nombre: '', empresa: '' });
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ email: '', nombre: '', empresa: '' });
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
   const [verificationResult, setVerificationResult] = useState<FaceMatchResult | null>(null);
@@ -53,33 +49,21 @@ export default function Home() {
   const [faceLoginLocked, setFaceLoginLocked] = useState(false);
   const [loginEvents, setLoginEvents] = useState<LoginEvent[]>([]);
   const [loginLoading, setLoginLoading] = useState(false);
-  const [authConfig, setAuthConfig] = useState<AuthConfig>({
-    allowedGoogleEmails: [],
-    allowedFaceLegajos: [],
-    allowedFaceEmployeeIds: []
-  });
-  const [authConfigSaving, setAuthConfigSaving] = useState(false);
-  const [authConfigMessage, setAuthConfigMessage] = useState<string | null>(null);
-  const [authConfigForm, setAuthConfigForm] = useState({
-    allowedGoogleEmails: '',
-    allowedFaceLegajos: '',
-    allowedFaceEmployeeIds: ''
-  });
 
-  const selectedEmployee = useMemo(
-    () => employees.find(emp => emp.id === selectedEmployeeId) || null,
-    [employees, selectedEmployeeId]
+  const selectedPerson = useMemo(
+    () => persons.find(person => person.id === selectedPersonId) || null,
+    [persons, selectedPersonId]
   );
 
-  const loadEmployees = useCallback(async () => {
+  const loadPersons = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/employees', { cache: 'no-store' });
       const data = await response.json();
-      setEmployees(Array.isArray(data.employees) ? data.employees : []);
+      setPersons(Array.isArray(data.persons) ? data.persons : []);
     } catch {
-      setError('No se pudieron cargar los empleados.');
+      setError('No se pudieron cargar las personas.');
     } finally {
       setLoading(false);
     }
@@ -98,32 +82,14 @@ export default function Home() {
     }
   }, []);
 
-  const loadAuthConfig = useCallback(async () => {
-    try {
-      const response = await fetch('/api/auth-config', { cache: 'no-store' });
-      const data = await response.json();
-      if (response.ok && data?.config) {
-        setAuthConfig(data.config as AuthConfig);
-        setAuthConfigForm({
-          allowedGoogleEmails: (data.config.allowedGoogleEmails || []).join(', '),
-          allowedFaceLegajos: (data.config.allowedFaceLegajos || []).join(', '),
-          allowedFaceEmployeeIds: (data.config.allowedFaceEmployeeIds || []).join(', ')
-        });
-      }
-    } catch {
-      setAuthConfigMessage('No se pudo cargar la configuración de acceso.');
-    }
-  }, []);
-
   useEffect(() => {
     if (status === 'authenticated') {
-      loadEmployees();
+      loadPersons();
       loadLoginEvents();
-      loadAuthConfig();
     }
-  }, [loadEmployees, loadLoginEvents, loadAuthConfig, status]);
+  }, [loadPersons, loadLoginEvents, status]);
 
-  const handleCreateEmployee = async (event: React.FormEvent) => {
+  const handleCreatePerson = async (event: React.FormEvent) => {
     event.preventDefault();
     setCreating(true);
     setRegisterMessage(null);
@@ -136,21 +102,21 @@ export default function Home() {
       });
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data?.error || 'No se pudo crear el empleado.');
+        throw new Error(data?.error || 'No se pudo crear la persona.');
       }
 
-      setFormData({ legajo: '', nombre: '', empresa: '' });
-      await loadEmployees();
+      setFormData({ email: '', nombre: '', empresa: '' });
+      await loadPersons();
     } catch (error: any) {
-      setRegisterMessage(error?.message || 'Error al crear el empleado.');
+      setRegisterMessage(error?.message || 'Error al crear la persona.');
     } finally {
       setCreating(false);
     }
   };
 
   const handleRegisterFace = async (descriptor: number[]) => {
-    if (!selectedEmployee) {
-      setRegisterMessage('Selecciona un empleado antes de registrar el rostro.');
+    if (!selectedPerson) {
+      setRegisterMessage('Selecciona una persona antes de registrar el rostro.');
       return;
     }
 
@@ -158,7 +124,7 @@ export default function Home() {
     const response = await fetch('/api/face/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ employeeId: selectedEmployee.id, descriptor })
+      body: JSON.stringify({ personId: selectedPerson.id, descriptor })
     });
     const data = await response.json();
     if (!response.ok) {
@@ -167,12 +133,12 @@ export default function Home() {
     }
 
     setRegisterMessage('Rostro registrado correctamente.');
-    await loadEmployees();
+    await loadPersons();
   };
 
   const handleRemoveFace = async () => {
-    if (!selectedEmployee) {
-      setRegisterMessage('Selecciona un empleado antes de eliminar el descriptor.');
+    if (!selectedPerson) {
+      setRegisterMessage('Selecciona una persona antes de eliminar el descriptor.');
       return;
     }
 
@@ -180,7 +146,7 @@ export default function Home() {
     const response = await fetch('/api/face/remove', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ employeeId: selectedEmployee.id })
+      body: JSON.stringify({ personId: selectedPerson.id })
     });
     const data = await response.json();
     if (!response.ok) {
@@ -189,7 +155,7 @@ export default function Home() {
     }
 
     setRegisterMessage('Descriptor eliminado correctamente.');
-    await loadEmployees();
+    await loadPersons();
   };
 
   const handleVerifyFace = async (descriptor: number[]) => {
@@ -207,7 +173,7 @@ export default function Home() {
     }
 
     if (!data.found) {
-      setVerifyMessage('No se encontró un empleado coincidente.');
+      setVerifyMessage('No se encontró una persona coincidente.');
       return;
     }
 
@@ -230,42 +196,21 @@ export default function Home() {
     }
   };
 
-  const handleSaveAuthConfig = async () => {
-    setAuthConfigSaving(true);
-    setAuthConfigMessage(null);
-    const payload = {
-      allowedGoogleEmails: authConfigForm.allowedGoogleEmails
-        .split(',')
-        .map(value => value.trim().toLowerCase())
-        .filter(Boolean),
-      allowedFaceLegajos: authConfigForm.allowedFaceLegajos
-        .split(',')
-        .map(value => value.trim())
-        .filter(Boolean),
-      allowedFaceEmployeeIds: authConfigForm.allowedFaceEmployeeIds
-        .split(',')
-        .map(value => value.trim())
-        .filter(Boolean)
-    };
-
-    try {
-      const response = await fetch('/api/auth-config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        setAuthConfigMessage(data?.error || 'No se pudo guardar la configuración.');
-      } else {
-        setAuthConfig(data.config as AuthConfig);
-        setAuthConfigMessage('Configuración actualizada.');
-      }
-    } catch {
-      setAuthConfigMessage('No se pudo guardar la configuración.');
-    } finally {
-      setAuthConfigSaving(false);
+  const handleUpdatePerson = async (
+    id: string,
+    updates: Partial<Pick<Person, 'active' | 'isAdmin'>>
+  ) => {
+    const response = await fetch(`/api/employees/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      setRegisterMessage(data?.error || 'No se pudo actualizar la persona.');
+      return;
     }
+    setPersons(prev => prev.map(person => (person.id === id ? data.person : person)));
   };
 
   if (status === 'loading') {
@@ -338,6 +283,7 @@ export default function Home() {
           <div className="text-right space-y-2">
             <p className="text-xs text-slate-500">
               Sesión: {session?.user?.name || session?.user?.email || 'Usuario'}
+              {(session as any)?.isAdmin ? ' · Admin' : ''}
             </p>
             <button
               type="button"
@@ -351,14 +297,16 @@ export default function Home() {
 
         <section className="grid md:grid-cols-2 gap-6">
           <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Crear empleado</h2>
-            <form className="space-y-3" onSubmit={handleCreateEmployee}>
+            <h2 className="text-lg font-semibold">Crear persona</h2>
+            <form className="space-y-3" onSubmit={handleCreatePerson}>
               <div className="space-y-1">
-                <label className="text-sm font-medium">Legajo</label>
+                <label className="text-sm font-medium">Email Gmail</label>
                 <input
-                  value={formData.legajo}
-                  onChange={(event) => setFormData(prev => ({ ...prev, legajo: event.target.value }))}
+                  value={formData.email}
+                  onChange={(event) => setFormData(prev => ({ ...prev, email: event.target.value }))}
                   className="w-full rounded border border-slate-200 px-3 py-2 text-sm"
+                  type="email"
+                  placeholder="usuario@gmail.com"
                 />
               </div>
               <div className="space-y-1">
@@ -382,7 +330,7 @@ export default function Home() {
                 disabled={creating}
                 className="w-full rounded bg-slate-900 text-white py-2 text-sm disabled:opacity-60"
               >
-                {creating ? 'Creando...' : 'Crear empleado'}
+                {creating ? 'Creando...' : 'Crear persona'}
               </button>
             </form>
             {registerMessage && (
@@ -391,38 +339,76 @@ export default function Home() {
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Empleados registrados</h2>
+            <h2 className="text-lg font-semibold">Personas registradas</h2>
             {loading ? (
-              <p className="text-sm text-slate-500">Cargando empleados...</p>
+              <p className="text-sm text-slate-500">Cargando personas...</p>
             ) : error ? (
               <p className="text-sm text-red-600">{error}</p>
-            ) : employees.length === 0 ? (
-              <p className="text-sm text-slate-500">No hay empleados registrados.</p>
+            ) : persons.length === 0 ? (
+              <p className="text-sm text-slate-500">No hay personas registradas.</p>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                {employees.map(employee => (
-                  <button
-                    key={employee.id}
-                    type="button"
+                {persons.map(person => (
+                  <div
+                    key={person.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
-                      setSelectedEmployeeId(employee.id);
+                      setSelectedPersonId(person.id);
                       setRegisterMessage(null);
                     }}
-                    className={`w-full text-left rounded border px-3 py-2 text-sm ${
-                      selectedEmployeeId === employee.id
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setSelectedPersonId(person.id);
+                        setRegisterMessage(null);
+                      }
+                    }}
+                    className={`w-full text-left rounded border px-3 py-2 text-sm cursor-pointer ${
+                      selectedPersonId === person.id
                         ? 'border-slate-900 bg-slate-50'
                         : 'border-slate-200'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">{employee.nombre}</span>
-                      <span className="text-xs text-slate-500">{employee.legajo}</span>
+                      <span className="font-medium">{person.nombre}</span>
+                      <span className="text-xs text-slate-500">{person.email}</span>
                     </div>
-                    <div className="text-xs text-slate-500">{employee.empresa}</div>
+                    <div className="text-xs text-slate-500">{person.empresa}</div>
                     <div className="text-xs text-slate-500">
-                      {employee.faceDescriptor?.length ? 'Rostro registrado' : 'Sin rostro registrado'}
+                      {person.faceDescriptor?.length ? 'Rostro registrado' : 'Sin rostro registrado'}
                     </div>
-                  </button>
+                    <div className="mt-2 flex items-center gap-2 text-xs">
+                      <span className={`px-2 py-1 rounded ${person.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {person.active ? 'Acceso activo' : 'Acceso suspendido'}
+                      </span>
+                      <span className={`px-2 py-1 rounded ${person.isAdmin ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {person.isAdmin ? 'Admin' : 'Sin admin'}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 text-xs">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleUpdatePerson(person.id, { active: !person.active });
+                        }}
+                        className="rounded border border-slate-200 px-2 py-1"
+                      >
+                        {person.active ? 'Suspender acceso' : 'Activar acceso'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleUpdatePerson(person.id, { isAdmin: !person.isAdmin });
+                        }}
+                        className="rounded border border-slate-200 px-2 py-1"
+                      >
+                        {person.isAdmin ? 'Quitar admin' : 'Hacer admin'}
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -431,22 +417,21 @@ export default function Home() {
 
         <section className="grid md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Registrar rostro del empleado</h2>
-            {selectedEmployee ? (
+            <h2 className="text-lg font-semibold">Registrar rostro de la persona</h2>
+            {selectedPerson ? (
               <div className="space-y-3">
                 <div className="rounded border border-slate-200 bg-white p-4 text-sm">
-                  <p className="font-medium">{selectedEmployee.nombre}</p>
-                  <p className="text-slate-500">
-                    {selectedEmployee.legajo} · {selectedEmployee.empresa}
-                  </p>
+                  <p className="font-medium">{selectedPerson.nombre}</p>
+                  <p className="text-slate-500">{selectedPerson.email}</p>
+                  <p className="text-slate-500">{selectedPerson.empresa}</p>
                 </div>
                 <FaceRecognitionCapture
-                  savedDescriptor={selectedEmployee.faceDescriptor}
+                  savedDescriptor={selectedPerson.faceDescriptor}
                   onDescriptorCaptured={handleRegisterFace}
                   onDescriptorRemoved={handleRemoveFace}
                   defaultExpanded={false}
                   title="Registro biométrico"
-                  description="Captura el rostro para asociarlo a este empleado."
+                  description="Captura el rostro para asociarlo a esta persona."
                   actionLabel="Registrar rostro"
                 />
                 {registerMessage && (
@@ -455,7 +440,7 @@ export default function Home() {
               </div>
             ) : (
               <p className="text-sm text-slate-500">
-                Selecciona un empleado para registrar su rostro.
+                Selecciona una persona para registrar su rostro.
               </p>
             )}
           </div>
@@ -466,7 +451,7 @@ export default function Home() {
               onDescriptorCaptured={handleVerifyFace}
               defaultExpanded={false}
               title="Verificación facial"
-              description="Captura un rostro y verifica si existe un empleado coincidente."
+              description="Captura un rostro y verifica si existe una persona coincidente."
               actionLabel="Verificar rostro"
             />
             {verifyMessage && (
@@ -476,7 +461,7 @@ export default function Home() {
               <div className="rounded border border-emerald-200 bg-emerald-50 p-4 text-sm">
                 <p className="font-medium">{verificationResult.nombre}</p>
                 <p className="text-slate-600">
-                  {verificationResult.legajo} · {verificationResult.empresa}
+                  {verificationResult.email} · {verificationResult.empresa}
                 </p>
                 <p className="text-slate-600">
                   Confianza: {verificationResult.confidence}% (distancia {verificationResult.distance.toFixed(3)})
@@ -529,63 +514,8 @@ export default function Home() {
           )}
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Accesos autorizados</h2>
-            <span className="text-xs text-slate-500">
-              Listas vacías permiten acceso libre
-            </span>
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Google (emails)</label>
-              <textarea
-                value={authConfigForm.allowedGoogleEmails}
-                onChange={(event) => setAuthConfigForm(prev => ({ ...prev, allowedGoogleEmails: event.target.value }))}
-                className="w-full rounded border border-slate-200 px-3 py-2 text-sm min-h-[96px]"
-                placeholder="email1@dominio.com, email2@dominio.com"
-              />
-              <p className="text-xs text-slate-500">
-                Separá con coma. Se comparan en minúsculas.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Rostro (legajos)</label>
-              <textarea
-                value={authConfigForm.allowedFaceLegajos}
-                onChange={(event) => setAuthConfigForm(prev => ({ ...prev, allowedFaceLegajos: event.target.value }))}
-                className="w-full rounded border border-slate-200 px-3 py-2 text-sm min-h-[96px]"
-                placeholder="123, 456, 789"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Rostro (IDs internos)</label>
-            <textarea
-              value={authConfigForm.allowedFaceEmployeeIds}
-              onChange={(event) => setAuthConfigForm(prev => ({ ...prev, allowedFaceEmployeeIds: event.target.value }))}
-              className="w-full rounded border border-slate-200 px-3 py-2 text-sm min-h-[72px]"
-              placeholder="uuid1, uuid2"
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleSaveAuthConfig}
-              disabled={authConfigSaving}
-              className="rounded bg-slate-900 text-white px-4 py-2 text-sm disabled:opacity-60"
-            >
-              {authConfigSaving ? 'Guardando...' : 'Guardar accesos'}
-            </button>
-            {authConfigMessage && (
-              <span className="text-sm text-slate-600">{authConfigMessage}</span>
-            )}
-          </div>
-          <div className="text-xs text-slate-500">
-            Google autorizados: {authConfig.allowedGoogleEmails.length} · Rostro por legajo: {authConfig.allowedFaceLegajos.length} · Rostro por ID: {authConfig.allowedFaceEmployeeIds.length}
-          </div>
-        </section>
       </div>
     </div>
   );
 }
+

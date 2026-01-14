@@ -3,7 +3,19 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { debugError } from './debug';
 
-export interface Employee {
+export interface Person {
+  id: string;
+  email: string;
+  nombre: string;
+  empresa: string;
+  faceDescriptor: number[] | null;
+  active: boolean;
+  isAdmin: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface LegacyEmployee {
   id: string;
   legajo: string;
   nombre: string;
@@ -29,7 +41,8 @@ export interface AuthConfig {
 }
 
 interface IdentityData {
-  employees: Employee[];
+  persons?: Person[];
+  employees?: LegacyEmployee[];
   loginEvents?: LoginEvent[];
   authConfig?: AuthConfig;
 }
@@ -44,7 +57,7 @@ async function ensureDataFile(): Promise<void> {
     await fs.mkdir(DATA_DIR, { recursive: true });
     await fs.access(DATA_FILE);
   } catch {
-    const initialData: IdentityData = { employees: [] };
+    const initialData: IdentityData = { persons: [] };
     await fs.writeFile(DATA_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
   }
 }
@@ -53,8 +66,20 @@ async function readData(): Promise<IdentityData> {
   await ensureDataFile();
   const raw = await fs.readFile(DATA_FILE, 'utf-8');
   const parsed = JSON.parse(raw) as IdentityData;
+  const legacyEmployees = parsed.employees ?? [];
+  const migratedPersons: Person[] = legacyEmployees.map(emp => ({
+    id: emp.id,
+    email: emp.legajo,
+    nombre: emp.nombre,
+    empresa: emp.empresa,
+    faceDescriptor: emp.faceDescriptor ?? null,
+    active: true,
+    isAdmin: false,
+    createdAt: emp.createdAt,
+    updatedAt: emp.updatedAt
+  }));
   return {
-    employees: parsed.employees ?? [],
+    persons: parsed.persons ?? migratedPersons,
     loginEvents: parsed.loginEvents ?? [],
     authConfig: parsed.authConfig ?? {
       allowedGoogleEmails: [],
@@ -68,69 +93,85 @@ async function writeData(data: IdentityData): Promise<void> {
   await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-export async function listEmployees(): Promise<Employee[]> {
+export async function listPersons(): Promise<Person[]> {
   const data = await readData();
-  return data.employees;
+  return data.persons ?? [];
 }
 
-export async function getEmployee(id: string): Promise<Employee | null> {
+export async function getPerson(id: string): Promise<Person | null> {
   const data = await readData();
-  return data.employees.find(emp => emp.id === id) ?? null;
+  return (data.persons ?? []).find(person => person.id === id) ?? null;
 }
 
-export async function createEmployee(input: {
-  legajo: string;
+export async function getPersonByEmail(email: string): Promise<Person | null> {
+  const data = await readData();
+  const normalized = email.trim().toLowerCase();
+  return (data.persons ?? []).find(person => person.email.toLowerCase() === normalized) ?? null;
+}
+
+export async function createPerson(input: {
+  email: string;
   nombre: string;
   empresa: string;
-}): Promise<Employee> {
+  active?: boolean;
+  isAdmin?: boolean;
+}): Promise<Person> {
   const data = await readData();
   const now = new Date().toISOString();
-  const employee: Employee = {
+  const person: Person = {
     id: randomUUID(),
-    legajo: input.legajo.trim(),
+    email: input.email.trim().toLowerCase(),
     nombre: input.nombre.trim(),
     empresa: input.empresa.trim(),
     faceDescriptor: null,
+    active: input.active ?? true,
+    isAdmin: input.isAdmin ?? false,
     createdAt: now,
     updatedAt: now
   };
 
-  data.employees.push(employee);
+  data.persons = data.persons ?? [];
+  data.persons.push(person);
   await writeData(data);
-  return employee;
+  return person;
 }
 
-export async function updateEmployee(
+export async function updatePerson(
   id: string,
-  updates: Partial<Pick<Employee, 'legajo' | 'nombre' | 'empresa'>>
-): Promise<Employee | null> {
+  updates: Partial<Pick<Person, 'email' | 'nombre' | 'empresa' | 'active' | 'isAdmin'>>
+): Promise<Person | null> {
   const data = await readData();
-  const index = data.employees.findIndex(emp => emp.id === id);
+  const persons = data.persons ?? [];
+  const index = persons.findIndex(person => person.id === id);
   if (index === -1) {
     return null;
   }
 
-  const existing = data.employees[index];
-  const updated: Employee = {
+  const existing = persons[index];
+  const updated: Person = {
     ...existing,
-    legajo: updates.legajo?.trim() ?? existing.legajo,
+    email: updates.email?.trim().toLowerCase() ?? existing.email,
     nombre: updates.nombre?.trim() ?? existing.nombre,
     empresa: updates.empresa?.trim() ?? existing.empresa,
+    active: typeof updates.active === 'boolean' ? updates.active : existing.active,
+    isAdmin: typeof updates.isAdmin === 'boolean' ? updates.isAdmin : existing.isAdmin,
     updatedAt: new Date().toISOString()
   };
 
-  data.employees[index] = updated;
+  persons[index] = updated;
+  data.persons = persons;
   await writeData(data);
   return updated;
 }
 
-export async function deleteEmployee(id: string): Promise<boolean> {
+export async function deletePerson(id: string): Promise<boolean> {
   const data = await readData();
-  const nextEmployees = data.employees.filter(emp => emp.id !== id);
-  if (nextEmployees.length === data.employees.length) {
+  const persons = data.persons ?? [];
+  const nextPersons = persons.filter(person => person.id !== id);
+  if (nextPersons.length === persons.length) {
     return false;
   }
-  data.employees = nextEmployees;
+  data.persons = nextPersons;
   await writeData(data);
   return true;
 }
@@ -138,45 +179,49 @@ export async function deleteEmployee(id: string): Promise<boolean> {
 export async function saveFaceDescriptor(
   id: string,
   descriptor: number[]
-): Promise<Employee | null> {
+): Promise<Person | null> {
   const data = await readData();
-  const index = data.employees.findIndex(emp => emp.id === id);
+  const persons = data.persons ?? [];
+  const index = persons.findIndex(person => person.id === id);
   if (index === -1) {
     return null;
   }
 
-  const updated: Employee = {
-    ...data.employees[index],
+  const updated: Person = {
+    ...persons[index],
     faceDescriptor: descriptor,
     updatedAt: new Date().toISOString()
   };
 
-  data.employees[index] = updated;
+  persons[index] = updated;
+  data.persons = persons;
   await writeData(data);
   return updated;
 }
 
-export async function clearFaceDescriptor(id: string): Promise<Employee | null> {
+export async function clearFaceDescriptor(id: string): Promise<Person | null> {
   const data = await readData();
-  const index = data.employees.findIndex(emp => emp.id === id);
+  const persons = data.persons ?? [];
+  const index = persons.findIndex(person => person.id === id);
   if (index === -1) {
     return null;
   }
 
-  const updated: Employee = {
-    ...data.employees[index],
+  const updated: Person = {
+    ...persons[index],
     faceDescriptor: null,
     updatedAt: new Date().toISOString()
   };
 
-  data.employees[index] = updated;
+  persons[index] = updated;
+  data.persons = persons;
   await writeData(data);
   return updated;
 }
 
-export async function safeReadEmployees(): Promise<Employee[]> {
+export async function safeReadPersons(): Promise<Person[]> {
   try {
-    return await listEmployees();
+    return await listPersons();
   } catch (error) {
     debugError('Error leyendo identidades:', error);
     return [];

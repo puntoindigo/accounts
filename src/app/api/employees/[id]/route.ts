@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { deleteEmployee, getEmployee, updateEmployee } from '@/lib/identity-store';
+import { deletePerson, getPerson, updatePerson } from '@/lib/identity-store';
 
 export const runtime = 'nodejs';
 
@@ -9,11 +9,11 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const employee = await getEmployee(id);
-  if (!employee) {
-    return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
+  const person = await getPerson(id);
+  if (!person) {
+    return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
   }
-  return NextResponse.json({ employee });
+  return NextResponse.json({ person });
 }
 
 export async function PATCH(
@@ -23,16 +23,18 @@ export async function PATCH(
   const { id } = await context.params;
   const body = await request.json();
   const updates = {
-    legajo: body?.legajo ? String(body.legajo) : undefined,
+    email: body?.email ? String(body.email) : undefined,
     nombre: body?.nombre ? String(body.nombre) : undefined,
-    empresa: body?.empresa ? String(body.empresa) : undefined
+    empresa: body?.empresa ? String(body.empresa) : undefined,
+    active: typeof body?.active === 'boolean' ? body.active : undefined,
+    isAdmin: typeof body?.isAdmin === 'boolean' ? body.isAdmin : undefined
   };
 
-  const employee = await updateEmployee(id, updates);
-  if (!employee) {
-    return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
+  const person = await updatePerson(id, updates);
+  if (!person) {
+    return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
   }
-  return NextResponse.json({ employee });
+  return NextResponse.json({ person });
 }
 
 export async function DELETE(
@@ -40,9 +42,9 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const removed = await deleteEmployee(id);
+  const removed = await deletePerson(id);
   if (!removed) {
-    return NextResponse.json({ error: 'Empleado no encontrado' }, { status: 404 });
+    return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
   }
   return NextResponse.json({ ok: true });
 }

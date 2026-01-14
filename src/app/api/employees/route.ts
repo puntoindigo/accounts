@@ -1,26 +1,33 @@
 import { NextResponse } from 'next/server';
-import { createEmployee, listEmployees } from '@/lib/identity-store';
+import { createPerson, listPersons } from '@/lib/identity-store';
 
 export const runtime = 'nodejs';
 
 export async function GET() {
-  const employees = await listEmployees();
-  return NextResponse.json({ employees });
+  const persons = await listPersons();
+  return NextResponse.json({ persons });
 }
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const legajo = String(body?.legajo || '').trim();
+  const email = String(body?.email || '').trim().toLowerCase();
   const nombre = String(body?.nombre || '').trim();
   const empresa = String(body?.empresa || '').trim();
 
-  if (!legajo || !nombre || !empresa) {
+  if (!email || !nombre || !empresa) {
     return NextResponse.json(
-      { error: 'legajo, nombre y empresa son requeridos' },
+      { error: 'email, nombre y empresa son requeridos' },
       { status: 400 }
     );
   }
 
-  const employee = await createEmployee({ legajo, nombre, empresa });
-  return NextResponse.json({ employee }, { status: 201 });
+  if (!email.includes('@')) {
+    return NextResponse.json(
+      { error: 'email inválido' },
+      { status: 400 }
+    );
+  }
+
+  const person = await createPerson({ email, nombre, empresa });
+  return NextResponse.json({ person }, { status: 201 });
 }

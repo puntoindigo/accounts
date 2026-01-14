@@ -1,10 +1,10 @@
 import { arrayToDescriptor, findMatchingFace, FACE_MATCH_THRESHOLD } from './utils';
-import type { Employee } from '../identity-store';
+import type { Person } from '../identity-store';
 import { debugError } from '../debug';
 
 export interface FaceMatchResult {
   id: string;
-  legajo: string;
+  email: string;
   nombre: string;
   empresa: string;
   distance: number;
@@ -13,26 +13,26 @@ export interface FaceMatchResult {
 
 export function findEmployeeByFace(
   capturedDescriptor: Float32Array | number[],
-  employees: Employee[]
+  persons: Person[]
 ): FaceMatchResult | null {
   try {
-    const employeesWithFace = employees
+    const personsWithFace = persons
       .filter(emp => Array.isArray(emp.faceDescriptor) && emp.faceDescriptor.length > 0)
       .map(emp => ({
         id: emp.id,
-        legajo: emp.legajo,
+        email: emp.email,
         nombre: emp.nombre,
         empresa: emp.empresa,
         descriptor: arrayToDescriptor(emp.faceDescriptor as number[])
       }));
 
-    if (employeesWithFace.length === 0) {
+    if (personsWithFace.length === 0) {
       return null;
     }
 
     const match = findMatchingFace(
       capturedDescriptor,
-      employeesWithFace.map(emp => ({
+      personsWithFace.map(emp => ({
         descriptor: emp.descriptor,
         id: emp.id
       }))
@@ -42,8 +42,8 @@ export function findEmployeeByFace(
       return null;
     }
 
-    const employeeData = employeesWithFace.find(emp => emp.id === match.id);
-    if (!employeeData) {
+    const personData = personsWithFace.find(emp => emp.id === match.id);
+    if (!personData) {
       return null;
     }
 
@@ -53,10 +53,10 @@ export function findEmployeeByFace(
     );
 
     return {
-      id: employeeData.id,
-      legajo: employeeData.legajo,
-      nombre: employeeData.nombre,
-      empresa: employeeData.empresa,
+      id: personData.id,
+      email: personData.email,
+      nombre: personData.nombre,
+      empresa: personData.empresa,
       distance: match.distance,
       confidence: Math.round(confidence)
     };

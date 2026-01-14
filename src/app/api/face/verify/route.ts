@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listEmployees } from '@/lib/identity-store';
+import { listPersons } from '@/lib/identity-store';
 import { findEmployeeByFace } from '@/lib/biometric/face-matcher';
 
 export const runtime = 'nodejs';
@@ -15,8 +15,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const employees = await listEmployees();
-  const match = findEmployeeByFace(descriptor, employees);
+  const persons = await listPersons();
+  const match = findEmployeeByFace(descriptor, persons);
 
   if (!match) {
     return NextResponse.json({ found: false });

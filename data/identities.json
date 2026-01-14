@@ -1,5 +1,5 @@
 {
-  "employees": [],
+  "persons": [],
   "loginEvents": [],
   "authConfig": {
     "allowedGoogleEmails": [],
