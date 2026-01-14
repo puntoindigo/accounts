@@ -9,11 +9,15 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const person = await getPerson(id);
-  if (!person) {
-    return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
+  try {
+    const person = await getPerson(id);
+    if (!person) {
+      return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
+    }
+    return NextResponse.json({ person });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Error obteniendo persona' }, { status: 500 });
   }
-  return NextResponse.json({ person });
 }
 
 export async function PATCH(
@@ -30,11 +34,15 @@ export async function PATCH(
     isAdmin: typeof body?.isAdmin === 'boolean' ? body.isAdmin : undefined
   };
 
-  const person = await updatePerson(id, updates);
-  if (!person) {
-    return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
+  try {
+    const person = await updatePerson(id, updates);
+    if (!person) {
+      return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
+    }
+    return NextResponse.json({ person });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Error actualizando persona' }, { status: 500 });
   }
-  return NextResponse.json({ person });
 }
 
 export async function DELETE(
@@ -42,9 +50,13 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const removed = await deletePerson(id);
-  if (!removed) {
-    return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
+  try {
+    const removed = await deletePerson(id);
+    if (!removed) {
+      return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Error eliminando persona' }, { status: 500 });
   }
-  return NextResponse.json({ ok: true });
 }

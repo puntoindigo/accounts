@@ -15,12 +15,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const persons = await listPersons();
-  const match = findEmployeeByFace(descriptor, persons);
+  try {
+    const persons = await listPersons();
+    const match = findEmployeeByFace(descriptor, persons);
 
-  if (!match) {
-    return NextResponse.json({ found: false });
+    if (!match) {
+      return NextResponse.json({ found: false });
+    }
+
+    return NextResponse.json({ found: true, match });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Error verificando rostro' }, { status: 500 });
   }
-
-  return NextResponse.json({ found: true, match });
 }

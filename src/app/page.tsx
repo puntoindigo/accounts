@@ -29,11 +29,16 @@ interface FaceMatchResult {
 
 interface LoginEvent {
   id: string;
+  personId: string | null;
   provider: string;
-  userId: string;
-  name: string;
+  status: 'success' | 'failed';
+  reason: string | null;
   email?: string | null;
-  timestamp: string;
+  ip: string | null;
+  city: string | null;
+  country: string | null;
+  userAgent: string | null;
+  createdAt: string;
 }
 
 function LoginGate({
@@ -141,6 +146,7 @@ export default function Home() {
   const [faceLoginLocked, setFaceLoginLocked] = useState(false);
   const [loginEvents, setLoginEvents] = useState<LoginEvent[]>([]);
   const [loginLoading, setLoginLoading] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<'all' | 'success' | 'failed'>('all');
 
   const selectedPerson = useMemo(
     () => persons.find(person => person.id === selectedPersonId) || null,
@@ -164,7 +170,8 @@ export default function Home() {
   const loadLoginEvents = useCallback(async () => {
     setLoginLoading(true);
     try {
-      const response = await fetch('/api/logins', { cache: 'no-store' });
+      const params = activityFilter === 'all' ? '' : `?status=${activityFilter}`;
+      const response = await fetch(`/api/logins${params}`, { cache: 'no-store' });
       const data = await response.json();
       setLoginEvents(Array.isArray(data.events) ? data.events : []);
     } catch {
@@ -172,7 +179,7 @@ export default function Home() {
     } finally {
       setLoginLoading(false);
     }
-  }, []);
+  }, [activityFilter]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -180,6 +187,12 @@ export default function Home() {
       loadLoginEvents();
     }
   }, [loadPersons, loadLoginEvents, status]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      loadLoginEvents();
+    }
+  }, [activityFilter, loadLoginEvents, status]);
 
   const handleCreatePerson = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -350,7 +363,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => signOut()}
-              className="rounded border border-slate-200 px-3 py-1 text-xs bg-white hover:bg-slate-50"
+              className="rounded border border-slate-200 px-3 py-1 text-xs bg-white hover:bg-slate-50 active:scale-[0.98] transition"
             >
               Cerrar sesión
             </button>
@@ -455,7 +468,7 @@ export default function Home() {
                           event.stopPropagation();
                           handleUpdatePerson(person.id, { active: !person.active });
                         }}
-                        className="rounded border border-slate-200 px-2 py-1"
+                        className="rounded border border-slate-200 px-2 py-1 bg-white hover:bg-slate-50 active:scale-[0.98] transition"
                       >
                         {person.active ? 'Suspender acceso' : 'Activar acceso'}
                       </button>
@@ -465,7 +478,7 @@ export default function Home() {
                           event.stopPropagation();
                           handleUpdatePerson(person.id, { isAdmin: !person.isAdmin });
                         }}
-                        className="rounded border border-slate-200 px-2 py-1"
+                        className="rounded border border-slate-200 px-2 py-1 bg-white hover:bg-slate-50 active:scale-[0.98] transition"
                       >
                         {person.isAdmin ? 'Quitar admin' : 'Hacer admin'}
                       </button>
@@ -535,35 +548,69 @@ export default function Home() {
         </section>
 
         <section className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Últimos logins</h2>
-            <button
-              type="button"
-              onClick={loadLoginEvents}
-              className="text-xs text-slate-500"
-            >
-              Actualizar
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Histórico de actividad</h2>
+            <div className="flex items-center gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setActivityFilter('all')}
+                className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'all' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+              >
+                Todos
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivityFilter('success')}
+                className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'success' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+              >
+                Exitosos
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivityFilter('failed')}
+                className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'failed' ? 'border-red-600 bg-red-600 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+              >
+                Fallidos
+              </button>
+              <button
+                type="button"
+                onClick={loadLoginEvents}
+                className="rounded border border-slate-200 px-2 py-1 bg-white hover:bg-slate-50 active:scale-[0.98] transition"
+              >
+                Actualizar
+              </button>
+            </div>
           </div>
           {loginLoading ? (
-            <p className="text-sm text-slate-500">Cargando logins...</p>
+            <p className="text-sm text-slate-500">Cargando actividad...</p>
           ) : loginEvents.length === 0 ? (
             <p className="text-sm text-slate-500">Sin registros todavía.</p>
           ) : (
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
               {loginEvents.map(event => (
                 <div
                   key={event.id}
-                  className="flex items-center justify-between border border-slate-100 rounded px-3 py-2 text-sm"
+                  className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-slate-100 rounded px-3 py-2 text-sm"
                 >
                   <div>
-                    <p className="font-medium">{event.name}</p>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-1 rounded ${event.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                        {event.status === 'success' ? 'Éxito' : 'Fallido'}
+                      </span>
+                      <span className="text-xs text-slate-500">{event.provider.toUpperCase()}</span>
+                      {event.reason && (
+                        <span className="text-xs text-slate-400">· {event.reason}</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-700">
+                      {event.email || 'Sin email'}
+                    </p>
                     <p className="text-xs text-slate-500">
-                      {event.provider.toUpperCase()} · {event.email || event.userId}
+                      {event.ip || 'IP desconocida'} · {event.city || 'Ciudad desconocida'} {event.country ? `(${event.country})` : ''}
                     </p>
                   </div>
                   <span className="text-xs text-slate-500">
-                    {new Date(event.timestamp).toLocaleString('es-AR', {
+                    {new Date(event.createdAt).toLocaleString('es-AR', {
                       day: '2-digit',
                       month: '2-digit',
                       year: 'numeric',

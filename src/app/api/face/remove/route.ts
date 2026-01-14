@@ -14,10 +14,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const person = await clearFaceDescriptor(personId);
-  if (!person) {
-    return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
-  }
+  try {
+    const person = await clearFaceDescriptor(personId);
+    if (!person) {
+      return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 });
+    }
 
-  return NextResponse.json({ person });
+    return NextResponse.json({ person });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Error removiendo rostro' }, { status: 500 });
+  }
 }

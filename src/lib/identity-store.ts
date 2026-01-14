@@ -1,7 +1,5 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { randomUUID } from 'crypto';
 import { debugError } from './debug';
+import { supabaseAdmin, supabaseServiceKey, supabaseUrl } from './supabase-admin';
 
 export interface Person {
   id: string;
@@ -15,98 +13,85 @@ export interface Person {
   updatedAt: string;
 }
 
-interface LegacyEmployee {
-  id: string;
-  legajo: string;
-  nombre: string;
-  empresa: string;
-  faceDescriptor: number[] | null;
-  createdAt: string;
-  updatedAt: string;
-}
+export type ActivityStatus = 'success' | 'failed';
 
-export interface LoginEvent {
+export interface ActivityEvent {
   id: string;
+  personId: string | null;
+  email: string | null;
   provider: string;
-  userId: string;
-  name: string;
-  email?: string | null;
-  timestamp: string;
+  status: ActivityStatus;
+  reason: string | null;
+  ip: string | null;
+  city: string | null;
+  country: string | null;
+  userAgent: string | null;
+  createdAt: string;
 }
 
-export interface AuthConfig {
-  allowedGoogleEmails: string[];
-  allowedFaceLegajos: string[];
-  allowedFaceEmployeeIds: string[];
-}
-
-interface IdentityData {
-  persons?: Person[];
-  employees?: LegacyEmployee[];
-  loginEvents?: LoginEvent[];
-  authConfig?: AuthConfig;
-}
-
-const DATA_DIR = process.env.VERCEL
-  ? path.join('/tmp', 'accounts-data')
-  : path.join(process.cwd(), 'data');
-const DATA_FILE = path.join(DATA_DIR, 'identities.json');
-
-async function ensureDataFile(): Promise<void> {
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    await fs.access(DATA_FILE);
-  } catch {
-    const initialData: IdentityData = { persons: [] };
-    await fs.writeFile(DATA_FILE, JSON.stringify(initialData, null, 2), 'utf-8');
+const ensureSupabase = () => {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Faltan SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY');
   }
-}
+};
 
-async function readData(): Promise<IdentityData> {
-  await ensureDataFile();
-  const raw = await fs.readFile(DATA_FILE, 'utf-8');
-  const parsed = JSON.parse(raw) as IdentityData;
-  const legacyEmployees = parsed.employees ?? [];
-  const migratedPersons: Person[] = legacyEmployees.map(emp => ({
-    id: emp.id,
-    email: emp.legajo,
-    nombre: emp.nombre,
-    empresa: emp.empresa,
-    faceDescriptor: emp.faceDescriptor ?? null,
-    active: true,
-    isAdmin: false,
-    createdAt: emp.createdAt,
-    updatedAt: emp.updatedAt
-  }));
-  return {
-    persons: parsed.persons ?? migratedPersons,
-    loginEvents: parsed.loginEvents ?? [],
-    authConfig: parsed.authConfig ?? {
-      allowedGoogleEmails: [],
-      allowedFaceLegajos: [],
-      allowedFaceEmployeeIds: []
-    }
-  };
-}
+const mapPerson = (row: any): Person => ({
+  id: row.id,
+  email: row.email,
+  nombre: row.nombre,
+  empresa: row.empresa,
+  faceDescriptor: row.face_descriptor ?? null,
+  active: row.active,
+  isAdmin: row.is_admin,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at
+});
 
-async function writeData(data: IdentityData): Promise<void> {
-  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
-}
+const mapActivity = (row: any): ActivityEvent => ({
+  id: row.id,
+  personId: row.person_id,
+  email: row.email,
+  provider: row.provider,
+  status: row.status,
+  reason: row.reason,
+  ip: row.ip,
+  city: row.city,
+  country: row.country,
+  userAgent: row.user_agent,
+  createdAt: row.created_at
+});
 
 export async function listPersons(): Promise<Person[]> {
-  const data = await readData();
-  return data.persons ?? [];
+  ensureSupabase();
+  const { data, error } = await supabaseAdmin
+    .from('accounts_persons')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapPerson);
 }
 
 export async function getPerson(id: string): Promise<Person | null> {
-  const data = await readData();
-  return (data.persons ?? []).find(person => person.id === id) ?? null;
+  ensureSupabase();
+  const { data, error } = await supabaseAdmin
+    .from('accounts_persons')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (error) return null;
+  return mapPerson(data);
 }
 
 export async function getPersonByEmail(email: string): Promise<Person | null> {
-  const data = await readData();
+  ensureSupabase();
   const normalized = email.trim().toLowerCase();
-  return (data.persons ?? []).find(person => person.email.toLowerCase() === normalized) ?? null;
+  const { data, error } = await supabaseAdmin
+    .from('accounts_persons')
+    .select('*')
+    .eq('email', normalized)
+    .single();
+  if (error) return null;
+  return mapPerson(data);
 }
 
 export async function createPerson(input: {
@@ -116,156 +101,110 @@ export async function createPerson(input: {
   active?: boolean;
   isAdmin?: boolean;
 }): Promise<Person> {
-  const data = await readData();
-  const now = new Date().toISOString();
-  const person: Person = {
-    id: randomUUID(),
+  ensureSupabase();
+  const payload = {
     email: input.email.trim().toLowerCase(),
     nombre: input.nombre.trim(),
     empresa: input.empresa.trim(),
-    faceDescriptor: null,
     active: input.active ?? true,
-    isAdmin: input.isAdmin ?? false,
-    createdAt: now,
-    updatedAt: now
+    is_admin: input.isAdmin ?? false
   };
 
-  data.persons = data.persons ?? [];
-  data.persons.push(person);
-  await writeData(data);
-  return person;
+  const { data, error } = await supabaseAdmin
+    .from('accounts_persons')
+    .insert(payload)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return mapPerson(data);
 }
 
 export async function updatePerson(
   id: string,
   updates: Partial<Pick<Person, 'email' | 'nombre' | 'empresa' | 'active' | 'isAdmin'>>
 ): Promise<Person | null> {
-  const data = await readData();
-  const persons = data.persons ?? [];
-  const index = persons.findIndex(person => person.id === id);
-  if (index === -1) {
-    return null;
-  }
+  ensureSupabase();
+  const payload: Record<string, any> = {};
+  if (updates.email !== undefined) payload.email = updates.email.trim().toLowerCase();
+  if (updates.nombre !== undefined) payload.nombre = updates.nombre.trim();
+  if (updates.empresa !== undefined) payload.empresa = updates.empresa.trim();
+  if (typeof updates.active === 'boolean') payload.active = updates.active;
+  if (typeof updates.isAdmin === 'boolean') payload.is_admin = updates.isAdmin;
 
-  const existing = persons[index];
-  const updated: Person = {
-    ...existing,
-    email: updates.email?.trim().toLowerCase() ?? existing.email,
-    nombre: updates.nombre?.trim() ?? existing.nombre,
-    empresa: updates.empresa?.trim() ?? existing.empresa,
-    active: typeof updates.active === 'boolean' ? updates.active : existing.active,
-    isAdmin: typeof updates.isAdmin === 'boolean' ? updates.isAdmin : existing.isAdmin,
-    updatedAt: new Date().toISOString()
-  };
-
-  persons[index] = updated;
-  data.persons = persons;
-  await writeData(data);
-  return updated;
+  const { data, error } = await supabaseAdmin
+    .from('accounts_persons')
+    .update(payload)
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error) return null;
+  return mapPerson(data);
 }
 
 export async function deletePerson(id: string): Promise<boolean> {
-  const data = await readData();
-  const persons = data.persons ?? [];
-  const nextPersons = persons.filter(person => person.id !== id);
-  if (nextPersons.length === persons.length) {
-    return false;
-  }
-  data.persons = nextPersons;
-  await writeData(data);
-  return true;
+  ensureSupabase();
+  const { error } = await supabaseAdmin
+    .from('accounts_persons')
+    .delete()
+    .eq('id', id);
+  return !error;
 }
 
 export async function saveFaceDescriptor(
   id: string,
   descriptor: number[]
 ): Promise<Person | null> {
-  const data = await readData();
-  const persons = data.persons ?? [];
-  const index = persons.findIndex(person => person.id === id);
-  if (index === -1) {
-    return null;
-  }
-
-  const updated: Person = {
-    ...persons[index],
-    faceDescriptor: descriptor,
-    updatedAt: new Date().toISOString()
-  };
-
-  persons[index] = updated;
-  data.persons = persons;
-  await writeData(data);
-  return updated;
+  ensureSupabase();
+  const { data, error } = await supabaseAdmin
+    .from('accounts_persons')
+    .update({ face_descriptor: descriptor })
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error) return null;
+  return mapPerson(data);
 }
 
 export async function clearFaceDescriptor(id: string): Promise<Person | null> {
-  const data = await readData();
-  const persons = data.persons ?? [];
-  const index = persons.findIndex(person => person.id === id);
-  if (index === -1) {
-    return null;
-  }
-
-  const updated: Person = {
-    ...persons[index],
-    faceDescriptor: null,
-    updatedAt: new Date().toISOString()
-  };
-
-  persons[index] = updated;
-  data.persons = persons;
-  await writeData(data);
-  return updated;
+  ensureSupabase();
+  const { data, error } = await supabaseAdmin
+    .from('accounts_persons')
+    .update({ face_descriptor: null })
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error) return null;
+  return mapPerson(data);
 }
 
-export async function safeReadPersons(): Promise<Person[]> {
+export async function listActivity(status?: ActivityStatus): Promise<ActivityEvent[]> {
+  ensureSupabase();
+  let query = supabaseAdmin.from('accounts_activity').select('*').order('created_at', { ascending: false });
+  if (status) {
+    query = query.eq('status', status);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(mapActivity);
+}
+
+export async function recordActivityEvent(event: Omit<ActivityEvent, 'id' | 'createdAt'>): Promise<void> {
   try {
-    return await listPersons();
+    ensureSupabase();
+    const payload = {
+      person_id: event.personId,
+      email: event.email,
+      provider: event.provider,
+      status: event.status,
+      reason: event.reason,
+      ip: event.ip,
+      city: event.city,
+      country: event.country,
+      user_agent: event.userAgent
+    };
+    const { error } = await supabaseAdmin.from('accounts_activity').insert(payload);
+    if (error) throw error;
   } catch (error) {
-    debugError('Error leyendo identidades:', error);
-    return [];
+    debugError('Error guardando actividad:', error);
   }
-}
-
-export async function listLoginEvents(): Promise<LoginEvent[]> {
-  const data = await readData();
-  return data.loginEvents ?? [];
-}
-
-export async function recordLoginEvent(event: Omit<LoginEvent, 'id' | 'timestamp'>): Promise<LoginEvent> {
-  const data = await readData();
-  const loginEvents = data.loginEvents ?? [];
-  const entry: LoginEvent = {
-    id: randomUUID(),
-    timestamp: new Date().toISOString(),
-    ...event
-  };
-
-  loginEvents.unshift(entry);
-  data.loginEvents = loginEvents.slice(0, 100);
-  await writeData(data);
-  return entry;
-}
-
-export async function getAuthConfig(): Promise<AuthConfig> {
-  const data = await readData();
-  return data.authConfig ?? {
-    allowedGoogleEmails: [],
-    allowedFaceLegajos: [],
-    allowedFaceEmployeeIds: []
-  };
-}
-
-export async function updateAuthConfig(config: AuthConfig): Promise<AuthConfig> {
-  const data = await readData();
-  const normalized: AuthConfig = {
-    allowedGoogleEmails: config.allowedGoogleEmails.map(value => value.trim().toLowerCase()).filter(Boolean),
-    allowedFaceLegajos: config.allowedFaceLegajos.map(value => value.trim()).filter(Boolean),
-    allowedFaceEmployeeIds: config.allowedFaceEmployeeIds.map(value => value.trim()).filter(Boolean)
-  };
-
-  data.authConfig = normalized;
-  await writeData(data);
-  return normalized;
 }
