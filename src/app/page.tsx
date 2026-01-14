@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import FaceRecognitionCapture from '@/components/biometric/FaceRecognitionCapture';
+import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
 
 interface Person {
   id: string;
@@ -249,15 +250,14 @@ export default function Home() {
 
             <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
               <h2 className="text-lg font-semibold">Reconocimiento facial</h2>
-              <FaceRecognitionCapture
+              <FaceRecognitionAutoCapture
                 onDescriptorCaptured={handleFaceLogin}
                 defaultExpanded={false}
                 title="Login biométrico"
                 description="Captura tu rostro para iniciar sesión."
                 actionLabel="Iniciar sesión"
-                autoCaptureOnDetect={true}
+                noticeLabel="Intentando iniciar sesión..."
                 autoCaptureDisabled={faceLoginLocked}
-                autoCaptureNoticeLabel="Intentando iniciar sesión..."
               />
             </div>
           </div>
@@ -447,12 +447,13 @@ export default function Home() {
 
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">Verificar identidad</h2>
-            <FaceRecognitionCapture
+            <FaceRecognitionAutoCapture
               onDescriptorCaptured={handleVerifyFace}
               defaultExpanded={false}
               title="Verificación facial"
               description="Captura un rostro y verifica si existe una persona coincidente."
               actionLabel="Verificar rostro"
+              noticeLabel="Verificando identidad..."
             />
             {verifyMessage && (
               <p className="text-sm text-slate-600">{verifyMessage}</p>
