@@ -66,10 +66,33 @@ function LoginGate({
 
         <button
           type="button"
-          className="w-full rounded-lg bg-blue-600 text-white py-2 text-sm font-medium shadow"
+          className="w-full rounded-lg border border-slate-200 bg-white text-slate-700 py-2 text-sm font-medium shadow-sm hover:bg-slate-50 flex items-center justify-center gap-2"
           onClick={() => signIn('google')}
         >
-          Acceder con Gmail
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 48 48"
+            aria-hidden="true"
+          >
+            <path
+              fill="#EA4335"
+              d="M24 9.5c3.44 0 6.5 1.18 8.92 3.12l6.66-6.66C35.54 2.36 30.08 0 24 0 14.62 0 6.54 5.38 2.54 13.22l7.76 6.02C12.1 13.02 17.6 9.5 24 9.5z"
+            />
+            <path
+              fill="#34A853"
+              d="M46.98 24.56c0-1.58-.14-3.1-.4-4.56H24v9.1h12.98c-.56 2.98-2.24 5.5-4.76 7.2l7.32 5.66c4.28-3.94 6.44-9.74 6.44-17.4z"
+            />
+            <path
+              fill="#4A90E2"
+              d="M10.3 28.86a14.5 14.5 0 0 1 0-9.72l-7.76-6.02A23.96 23.96 0 0 0 0 24c0 3.9.94 7.58 2.54 10.88l7.76-6.02z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M24 48c6.48 0 11.92-2.14 15.88-5.8l-7.32-5.66c-2.02 1.36-4.6 2.16-8.56 2.16-6.4 0-11.9-3.52-13.7-9.74l-7.76 6.02C6.54 42.62 14.62 48 24 48z"
+            />
+          </svg>
+          Acceder con Google
         </button>
 
         <div className="flex items-center gap-3 text-xs text-slate-400">
@@ -327,7 +350,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => signOut()}
-              className="rounded border border-slate-200 px-3 py-1 text-xs"
+              className="rounded border border-slate-200 px-3 py-1 text-xs bg-white hover:bg-slate-50"
             >
               Cerrar sesión
             </button>
