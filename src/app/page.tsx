@@ -301,7 +301,7 @@ export default function Home() {
               <h2 className="text-lg font-semibold">Reconocimiento facial</h2>
               <FaceRecognitionCapture
                 onDescriptorCaptured={handleFaceLogin}
-                defaultExpanded={false}
+                defaultExpanded={true}
                 title="Login biométrico"
                 description="Captura tu rostro para iniciar sesión."
                 actionLabel="Iniciar sesión"

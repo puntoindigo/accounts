@@ -2,6 +2,8 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { deleteEmployee, getEmployee, updateEmployee } from '@/lib/identity-store';
 
+export const runtime = 'nodejs';
+
 export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> }

@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getAuthConfig, updateAuthConfig } from '@/lib/identity-store';
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) {

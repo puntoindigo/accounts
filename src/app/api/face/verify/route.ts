@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { listEmployees } from '@/lib/identity-store';
 import { findEmployeeByFace } from '@/lib/biometric/face-matcher';
 
+export const runtime = 'nodejs';
+
 export async function POST(request: Request) {
   const body = await request.json();
   const descriptor = Array.isArray(body?.descriptor) ? body.descriptor : null;

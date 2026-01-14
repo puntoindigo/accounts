@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createEmployee, listEmployees } from '@/lib/identity-store';
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   const employees = await listEmployees();
   return NextResponse.json({ employees });
