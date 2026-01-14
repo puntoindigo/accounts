@@ -42,6 +42,8 @@ export default function FaceRecognitionCapture({
   const [message, setMessage] = useState<string | null>(null);
   const [autoCaptureBlocked, setAutoCaptureBlocked] = useState(false);
   const [autoCaptureNotice, setAutoCaptureNotice] = useState(false);
+  const [userStopped, setUserStopped] = useState(false);
+  const prevExpandedRef = useRef(isExpanded);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -54,20 +56,38 @@ export default function FaceRecognitionCapture({
   }, [isExpanded, state.isModelLoaded, loadModels]);
 
   useEffect(() => {
-    if (isExpanded && state.isModelLoaded && !isStreaming && !isStartingCamera && !cameraError) {
+    if (
+      isExpanded &&
+      state.isModelLoaded &&
+      !isStreaming &&
+      !isStartingCamera &&
+      !cameraError &&
+      !userStopped
+    ) {
       const timer = setTimeout(() => {
         startCamera();
       }, 300);
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [isExpanded, state.isModelLoaded, isStreaming, isStartingCamera, cameraError]);
+  }, [isExpanded, state.isModelLoaded, isStreaming, isStartingCamera, cameraError, userStopped]);
 
   useEffect(() => {
     if (!isExpanded && isStreaming) {
       stopStream();
     }
   }, [isExpanded, isStreaming]);
+
+  useEffect(() => {
+    const prevExpanded = prevExpandedRef.current;
+    if (isExpanded && !prevExpanded) {
+      setUserStopped(false);
+    }
+    if (!isExpanded && prevExpanded) {
+      setUserStopped(true);
+    }
+    prevExpandedRef.current = isExpanded;
+  }, [isExpanded]);
 
   useEffect(() => {
     if (detectionIntervalRef.current) {
@@ -195,6 +215,7 @@ export default function FaceRecognitionCapture({
   };
 
   const stopStream = () => {
+    setUserStopped(true);
     if (detectionIntervalRef.current) {
       clearInterval(detectionIntervalRef.current);
       detectionIntervalRef.current = null;
@@ -317,7 +338,10 @@ export default function FaceRecognitionCapture({
                 {!isStreaming ? (
                   <button
                     type="button"
-                    onClick={startCamera}
+                    onClick={() => {
+                      setUserStopped(false);
+                      startCamera();
+                    }}
                     disabled={state.isDetecting || isStartingCamera}
                     className="px-4 py-2 rounded bg-slate-900 text-white text-sm disabled:opacity-50"
                   >
