@@ -154,6 +154,7 @@ export default function Home() {
   const [faceMode, setFaceMode] = useState<'register' | 'verify'>('verify');
   const [showPersons, setShowPersons] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [showSessionActions, setShowSessionActions] = useState(false);
   const [personsVisibleCount, setPersonsVisibleCount] = useState(PERSONS_PAGE_SIZE);
   const [activityVisibleCount, setActivityVisibleCount] = useState(ACTIVITY_PAGE_SIZE);
 
@@ -387,7 +388,11 @@ export default function Home() {
             </p>
           </div>
           <div className="flex flex-col items-center gap-2">
-            <div className="flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSessionActions(prev => !prev)}
+              className="flex flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm hover:bg-slate-50 transition"
+            >
               {session?.user?.image ? (
                 <img
                   src={session.user.image}
@@ -416,14 +421,16 @@ export default function Home() {
                   <p className="text-[10px] text-slate-500">Admin</p>
                 )}
               </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => signOut()}
-              className="rounded border border-slate-200 px-3 py-1 text-xs bg-white hover:bg-slate-50 active:scale-[0.98] transition"
-            >
-              Cerrar sesión
             </button>
+            {showSessionActions && (
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="rounded border border-slate-200 px-3 py-1 text-xs bg-white hover:bg-slate-50 active:scale-[0.98] transition"
+              >
+                Cerrar sesión
+              </button>
+            )}
           </div>
         </header>
 
@@ -625,10 +632,34 @@ export default function Home() {
 
             {faceMode === 'register' ? (
               <div className="space-y-3">
-                <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm">
-                  <p className="font-medium">{selectedPerson.nombre}</p>
-                  <p className="text-slate-500">{selectedPerson.email}</p>
-                  <p className="text-slate-500">{selectedPerson.empresa}</p>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm shadow-sm">
+                  <div className="flex items-center gap-3">
+                    {selectedPerson.faceImageUrl ? (
+                      <img
+                        src={selectedPerson.faceImageUrl}
+                        alt={`Rostro de ${selectedPerson.nombre}`}
+                        className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                        <svg
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                          fill="#94a3b8"
+                        >
+                          <circle cx="12" cy="9" r="4" />
+                          <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+                        </svg>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium">{selectedPerson.nombre}</p>
+                      <p className="text-slate-500">{selectedPerson.email}</p>
+                      <p className="text-slate-500">{selectedPerson.empresa}</p>
+                    </div>
+                  </div>
                 </div>
                 <FaceRegistrationPicker
                   onRegister={handleRegisterFaceWithImage}

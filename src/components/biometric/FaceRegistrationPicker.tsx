@@ -348,19 +348,27 @@ export default function FaceRegistrationPicker({
               <button
                 type="button"
                 onClick={() => {
-                  if (!item) return;
+                  if (!item) {
+                    setManualSelection(false);
+                    setSelectedId(null);
+                    startCamera();
+                    return;
+                  }
                   setSelectedId(item.id);
                   setManualSelection(true);
                 }}
-                className={`rounded border-2 w-full h-20 ${
-                  item ? '' : 'border-dashed border-slate-200'
-                } ${isSelected ? 'border-blue-500 border-4 shadow-[0_0_0_2px_rgba(59,130,246,0.35)]' : 'border-transparent'}`}
-                disabled={!item}
+                className={`rounded-lg overflow-hidden w-full h-20 ${
+                  item ? '' : 'border-2 border-dashed border-slate-200'
+                } ${
+                  isSelected
+                    ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-white'
+                    : ''
+                }`}
               >
                 {item ? (
-                  <img src={item.imageUrl} alt="captura" className="w-full h-20 object-cover rounded" />
+                  <img src={item.imageUrl} alt="captura" className="w-full h-20 object-cover rounded-lg" />
                 ) : (
-                  <div className="w-full h-20 rounded bg-slate-100" />
+                  <div className="w-full h-20 rounded-lg bg-slate-100" />
                 )}
               </button>
               {item && (
