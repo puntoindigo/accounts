@@ -385,14 +385,21 @@ export default function Home() {
                     const localPart = beforeAt.replace(/\s+/g, '').trim();
                     const normalized = localPart ? `${localPart}@gmail.com` : '';
                     setFormData(prev => ({ ...prev, email: normalized }));
-                    const desiredPos = Math.min(
-                      event.target.selectionStart ?? localPart.length,
-                      localPart.length
-                    );
+                  }}
+                  onKeyUp={() => {
+                    const input = emailInputRef.current;
+                    if (!input) return;
+                    const localLength = (input.value.split('@')[0] || '').length;
                     requestAnimationFrame(() => {
-                      if (emailInputRef.current) {
-                        emailInputRef.current.setSelectionRange(desiredPos, desiredPos);
-                      }
+                      input.setSelectionRange(localLength, localLength);
+                    });
+                  }}
+                  onFocus={() => {
+                    const input = emailInputRef.current;
+                    if (!input) return;
+                    const localLength = (input.value.split('@')[0] || '').length;
+                    requestAnimationFrame(() => {
+                      input.setSelectionRange(localLength, localLength);
                     });
                   }}
                   className="w-full rounded border border-slate-200 px-3 py-2 text-sm"
