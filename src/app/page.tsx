@@ -163,6 +163,11 @@ export default function Home() {
     () => persons.find(person => person.id === selectedPersonId) || null,
     [persons, selectedPersonId]
   );
+  const currentUserEmail = (session?.user?.email || '').toLowerCase().trim();
+  const currentPerson = useMemo(
+    () => persons.find(person => person.email.toLowerCase() === currentUserEmail) || null,
+    [persons, currentUserEmail]
+  );
 
   const loadPersons = useCallback(async () => {
     setLoading(true);
@@ -395,7 +400,13 @@ export default function Home() {
               onClick={() => setShowSessionActions(prev => !prev)}
               className="flex flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm hover:bg-slate-50 transition"
             >
-              {session?.user?.image ? (
+              {currentPerson?.faceImageUrl ? (
+                <img
+                  src={currentPerson.faceImageUrl}
+                  alt={session?.user?.name || 'Perfil'}
+                  className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                />
+              ) : session?.user?.image ? (
                 <img
                   src={session.user.image}
                   alt={session.user.name || 'Perfil'}
