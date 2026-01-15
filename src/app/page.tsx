@@ -150,6 +150,8 @@ export default function Home() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [activityFilter, setActivityFilter] = useState<'all' | 'success' | 'failed'>('all');
   const [faceMode, setFaceMode] = useState<'register' | 'verify'>('verify');
+  const [showPersons, setShowPersons] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
 
   const selectedPerson = useMemo(
     () => persons.find(person => person.id === selectedPersonId) || null,
@@ -380,14 +382,24 @@ export default function Home() {
         <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Personas registradas</h2>
-            <button
-              type="button"
-              onClick={() => setShowCreatePerson(prev => !prev)}
-              className="rounded-full border border-slate-300 bg-white w-9 h-9 flex items-center justify-center text-lg font-semibold shadow-sm hover:bg-slate-50 active:translate-y-px transition"
-              aria-label="Crear persona"
-            >
-              +
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCreatePerson(prev => !prev)}
+                className="rounded-full border border-slate-300 bg-white w-9 h-9 flex items-center justify-center text-lg font-semibold shadow-sm hover:bg-slate-50 active:translate-y-px transition"
+                aria-label="Crear persona"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPersons(prev => !prev)}
+                className="rounded-full border border-slate-300 bg-white w-9 h-9 flex items-center justify-center text-sm font-semibold shadow-sm hover:bg-slate-50 active:translate-y-px transition"
+                aria-label="Mostrar personas registradas"
+              >
+                {showPersons ? '▴' : '▾'}
+              </button>
+            </div>
           </div>
 
           {showCreatePerson && (
@@ -441,16 +453,17 @@ export default function Home() {
             <p className="text-sm text-slate-600">{registerMessage}</p>
           )}
 
-          <div className="space-y-3">
-            {loading ? (
-              <p className="text-sm text-slate-500">Cargando personas...</p>
-            ) : error ? (
-              <p className="text-sm text-red-600">{error}</p>
-            ) : persons.length === 0 ? (
-              <p className="text-sm text-slate-500">No hay personas registradas.</p>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                {persons.map(person => (
+          {showPersons && (
+            <div className="space-y-3">
+              {loading ? (
+                <p className="text-sm text-slate-500">Cargando personas...</p>
+              ) : error ? (
+                <p className="text-sm text-red-600">{error}</p>
+              ) : persons.length === 0 ? (
+                <p className="text-sm text-slate-500">No hay personas registradas.</p>
+              ) : (
+                <div className="space-y-2 h-[640px] overflow-y-auto pr-1">
+                  {persons.map(person => (
                   <div
                     key={person.id}
                     role="button"
@@ -470,7 +483,7 @@ export default function Home() {
                       selectedPersonId === person.id
                         ? 'border-slate-900 bg-slate-50'
                         : 'border-slate-200'
-                    }`}
+                    } ${person.active ? '' : 'bg-slate-50 opacity-70'}`}
                   >
                     <div className="flex flex-col gap-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -502,11 +515,8 @@ export default function Home() {
                           </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className={`px-2 py-1 rounded ${person.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                          <span className={`px-2 py-1 rounded ${person.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
                             {person.active ? 'Acceso activo' : 'Acceso suspendido'}
-                          </span>
-                          <span className={`px-2 py-1 rounded ${person.isAdmin ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
-                            {person.isAdmin ? 'Admin' : 'Sin admin'}
                           </span>
                         </div>
                       </div>
@@ -524,16 +534,6 @@ export default function Home() {
                         >
                           {person.active ? 'Suspender acceso' : 'Activar acceso'}
                         </button>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleUpdatePerson(person.id, { isAdmin: !person.isAdmin });
-                          }}
-                          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-semibold shadow hover:shadow-md hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
-                        >
-                          {person.isAdmin ? 'Quitar admin' : 'Hacer admin'}
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -541,6 +541,7 @@ export default function Home() {
               </div>
             )}
           </div>
+          )}
         </section>
 
         <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
@@ -622,80 +623,94 @@ export default function Home() {
           )}
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
+        <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">Histórico de actividad</h2>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold">Histórico de actividad</h2>
               <button
                 type="button"
-                onClick={() => setActivityFilter('all')}
-                className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'all' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                onClick={() => setShowActivity(prev => !prev)}
+                className="rounded-full border border-slate-300 bg-white w-9 h-9 flex items-center justify-center text-sm font-semibold shadow-sm hover:bg-slate-50 active:translate-y-px transition"
+                aria-label="Mostrar histórico de actividad"
               >
-                Todos
-              </button>
-              <button
-                type="button"
-                onClick={() => setActivityFilter('success')}
-                className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'success' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
-              >
-                Exitosos
-              </button>
-              <button
-                type="button"
-                onClick={() => setActivityFilter('failed')}
-                className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'failed' ? 'border-red-600 bg-red-600 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
-              >
-                Fallidos
-              </button>
-              <button
-                type="button"
-                onClick={loadLoginEvents}
-                className="rounded border border-slate-200 px-2 py-1 bg-white hover:bg-slate-50 active:scale-[0.98] transition"
-              >
-                Actualizar
+                {showActivity ? '▴' : '▾'}
               </button>
             </div>
           </div>
-          {loginLoading ? (
-            <p className="text-sm text-slate-500">Cargando actividad...</p>
-          ) : loginEvents.length === 0 ? (
-            <p className="text-sm text-slate-500">Sin registros todavía.</p>
-          ) : (
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-              {loginEvents.map(event => (
-                <div
-                  key={event.id}
-                  className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-slate-100 rounded px-3 py-2 text-sm"
+          {showActivity && (
+            <>
+              <div className="flex items-center gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setActivityFilter('all')}
+                  className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'all' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
                 >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-1 rounded ${event.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                        {event.status === 'success' ? 'Éxito' : 'Fallido'}
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivityFilter('success')}
+                  className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'success' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                >
+                  Exitosos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivityFilter('failed')}
+                  className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'failed' ? 'border-red-600 bg-red-600 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                >
+                  Fallidos
+                </button>
+                <button
+                  type="button"
+                  onClick={loadLoginEvents}
+                  className="rounded border border-slate-200 px-2 py-1 bg-white hover:bg-slate-50 active:scale-[0.98] transition"
+                >
+                  Actualizar
+                </button>
+              </div>
+              {loginLoading ? (
+                <p className="text-sm text-slate-500">Cargando actividad...</p>
+              ) : loginEvents.length === 0 ? (
+                <p className="text-sm text-slate-500">Sin registros todavía.</p>
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  {loginEvents.map(event => (
+                    <div
+                      key={event.id}
+                      className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-slate-100 rounded px-3 py-2 text-sm"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-1 rounded ${event.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                            {event.status === 'success' ? 'Éxito' : 'Fallido'}
+                          </span>
+                          <span className="text-xs text-slate-500">{event.provider.toUpperCase()}</span>
+                          {event.reason && (
+                            <span className="text-xs text-slate-400">· {event.reason}</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-700">
+                          {event.email || 'Sin email'}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {event.ip || 'IP desconocida'} · {event.city || 'Ciudad desconocida'} {event.country ? `(${event.country})` : ''}
+                        </p>
+                      </div>
+                      <span className="text-xs text-slate-500">
+                        {new Date(event.createdAt).toLocaleString('es-AR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
                       </span>
-                      <span className="text-xs text-slate-500">{event.provider.toUpperCase()}</span>
-                      {event.reason && (
-                        <span className="text-xs text-slate-400">· {event.reason}</span>
-                      )}
                     </div>
-                    <p className="text-sm text-slate-700">
-                      {event.email || 'Sin email'}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {event.ip || 'IP desconocida'} · {event.city || 'Ciudad desconocida'} {event.country ? `(${event.country})` : ''}
-                    </p>
-                  </div>
-                  <span className="text-xs text-slate-500">
-                    {new Date(event.createdAt).toLocaleString('es-AR', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </section>
 

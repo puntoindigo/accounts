@@ -30,8 +30,10 @@ export default function FaceRegistrationPicker({
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [faceDetection, setFaceDetection] = useState<any | null>(null);
   const [captures, setCaptures] = useState<CaptureItem[]>([]);
+  const capturesRef = useRef(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const lastCaptureRef = useRef<number>(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -66,6 +68,15 @@ export default function FaceRegistrationPicker({
           ctx.strokeStyle = detection.detection.score > 0.5 ? '#22c55e' : '#f59e0b';
           ctx.lineWidth = 3;
           ctx.strokeRect(box.x, box.y, box.width, box.height);
+        }
+
+        if (
+          detection?.detection?.score > 0.6 &&
+          capturesRef.current < MAX_CAPTURES &&
+          Date.now() - lastCaptureRef.current > 1200
+        ) {
+          lastCaptureRef.current = Date.now();
+          await captureFrame();
         }
       }, 150);
     }
@@ -147,8 +158,7 @@ export default function FaceRegistrationPicker({
       setMessage('Los modelos todavía no están listos.');
       return;
     }
-    if (captures.length >= MAX_CAPTURES) {
-      setMessage(`Máximo ${MAX_CAPTURES} capturas.`);
+    if (capturesRef.current >= MAX_CAPTURES) {
       return;
     }
 
@@ -178,12 +188,17 @@ export default function FaceRegistrationPicker({
 
     setCaptures(prev => {
       const next = [...prev, item];
+      capturesRef.current = next.length;
       if (!selectedId) {
         setSelectedId(item.id);
       }
       return next;
     });
-    setMessage(`Captura ${captures.length + 1} guardada.`);
+    const nextCount = capturesRef.current;
+    setMessage(`Captura ${nextCount} guardada.`);
+    if (nextCount >= MAX_CAPTURES) {
+      stopStream();
+    }
   };
 
   const handleRegister = async () => {
@@ -222,6 +237,28 @@ export default function FaceRegistrationPicker({
             {faceDetection.detection?.score > 0.5 ? 'Rostro detectado' : 'Ajustando...'}
           </div>
         )}
+        <div className="absolute top-2 right-2 flex items-center gap-2">
+          {!isStreaming ? (
+            <button
+              type="button"
+              onClick={startCamera}
+              disabled={isStartingCamera}
+              className="h-9 w-9 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow hover:bg-white"
+              aria-label="Activar cámara"
+            >
+              ▶
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={stopStream}
+              className="h-9 w-9 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow hover:bg-white"
+              aria-label="Detener cámara"
+            >
+              ■
+            </button>
+          )}
+        </div>
       </div>
 
       {cameraError && (
@@ -231,34 +268,6 @@ export default function FaceRegistrationPicker({
       )}
 
       <div className="flex flex-wrap gap-2 text-sm">
-        {!isStreaming ? (
-          <button
-            type="button"
-            onClick={startCamera}
-            disabled={isStartingCamera}
-            className="px-4 py-2 rounded bg-slate-900 text-white disabled:opacity-50"
-          >
-            {isStartingCamera ? 'Activando cámara...' : 'Activar cámara'}
-          </button>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={captureFrame}
-              disabled={state.isDetecting}
-              className="px-4 py-2 rounded bg-emerald-600 text-white disabled:opacity-50"
-            >
-              Capturar
-            </button>
-            <button
-              type="button"
-              onClick={stopStream}
-              className="px-4 py-2 rounded border border-slate-300"
-            >
-              Detener cámara
-            </button>
-          </>
-        )}
         {hasSavedFace && (
           <button
             type="button"
@@ -271,7 +280,7 @@ export default function FaceRegistrationPicker({
       </div>
 
       <div className="text-xs text-slate-500">
-        Capturá {MIN_CAPTURES} o {MAX_CAPTURES} fotos y elegí una.
+        Se tomarán {MIN_CAPTURES} a {MAX_CAPTURES} fotos automáticamente al detectar el rostro.
       </div>
 
       {captures.length > 0 && (

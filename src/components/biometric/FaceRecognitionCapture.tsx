@@ -326,6 +326,44 @@ export default function FaceRecognitionCapture({
                     {autoCaptureNoticeLabel}
                   </div>
                 )}
+                <div className="absolute top-2 right-2 flex items-center gap-2">
+                  {!isStreaming ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserStopped(false);
+                        startCamera();
+                      }}
+                      disabled={state.isDetecting || isStartingCamera}
+                      className="h-9 w-9 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow hover:bg-white"
+                      aria-label="Activar cámara"
+                    >
+                      ▶
+                    </button>
+                  ) : (
+                    <>
+                      {!autoCaptureOnDetect && (
+                        <button
+                          type="button"
+                          onClick={captureDescriptor}
+                          disabled={state.isDetecting}
+                          className="h-9 w-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow hover:bg-emerald-500"
+                          aria-label={actionLabel}
+                        >
+                          ●
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={stopStream}
+                        className="h-9 w-9 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow hover:bg-white"
+                        aria-label="Detener cámara"
+                      >
+                        ■
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
 
               {cameraError && (
@@ -334,49 +372,15 @@ export default function FaceRecognitionCapture({
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2">
-                {!isStreaming ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUserStopped(false);
-                      startCamera();
-                    }}
-                    disabled={state.isDetecting || isStartingCamera}
-                    className="px-4 py-2 rounded bg-slate-900 text-white text-sm disabled:opacity-50"
-                  >
-                    {isStartingCamera ? 'Activando cámara...' : 'Activar cámara'}
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={captureDescriptor}
-                      disabled={state.isDetecting}
-                      className="px-4 py-2 rounded bg-emerald-600 text-white text-sm disabled:opacity-50"
-                    >
-                      {state.isDetecting ? 'Detectando...' : actionLabel}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={stopStream}
-                      className="px-4 py-2 rounded border border-slate-300 text-sm"
-                    >
-                      Detener cámara
-                    </button>
-                  </>
-                )}
-
-                {hasSavedDescriptor && onDescriptorRemoved && (
-                  <button
-                    type="button"
-                    onClick={onDescriptorRemoved}
-                    className="px-4 py-2 rounded border border-red-200 text-sm text-red-600"
-                  >
-                    Eliminar descriptor
-                  </button>
-                )}
-              </div>
+              {hasSavedDescriptor && onDescriptorRemoved && (
+                <button
+                  type="button"
+                  onClick={onDescriptorRemoved}
+                  className="px-4 py-2 rounded border border-red-200 text-sm text-red-600"
+                >
+                  Eliminar descriptor
+                </button>
+              )}
 
               {message && (
                 <div className="text-sm text-slate-600">{message}</div>
