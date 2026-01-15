@@ -155,6 +155,7 @@ export default function Home() {
   const [showPersons, setShowPersons] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [showSessionActions, setShowSessionActions] = useState(false);
+  const [showRegisterCapture, setShowRegisterCapture] = useState(true);
   const [personsVisibleCount, setPersonsVisibleCount] = useState(PERSONS_PAGE_SIZE);
   const [activityVisibleCount, setActivityVisibleCount] = useState(ACTIVITY_PAGE_SIZE);
 
@@ -270,6 +271,7 @@ export default function Home() {
       setPersons(prev => prev.map(person => (person.id === data.person.id ? data.person : person)));
       setSelectedPersonId(data.person.id);
     }
+    setShowRegisterCapture(false);
     await loadPersons();
   };
 
@@ -581,9 +583,9 @@ export default function Home() {
                             {person.active ? 'Acceso activo' : 'Acceso suspendido'}
                           </button>
                         </div>
-                        <div className="text-xs text-slate-500">
-                          {person.faceDescriptor?.length ? 'Rostro registrado' : 'Sin rostro registrado'}
-                        </div>
+                      {!person.faceDescriptor?.length && (
+                        <div className="text-xs text-slate-500">Sin rostro registrado</div>
+                      )}
                       </div>
                     </div>
                   ))}
@@ -632,40 +634,48 @@ export default function Home() {
 
             {faceMode === 'register' ? (
               <div className="space-y-3">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm shadow-sm">
-                  <div className="flex items-center gap-3">
-                    {selectedPerson.faceImageUrl ? (
-                      <img
-                        src={selectedPerson.faceImageUrl}
-                        alt={`Rostro de ${selectedPerson.nombre}`}
-                        className="w-12 h-12 rounded-full object-cover border border-slate-200"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
-                        <svg
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                          fill="#94a3b8"
-                        >
-                          <circle cx="12" cy="9" r="4" />
-                          <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
-                        </svg>
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterCapture(true)}
+                  className="w-full text-left"
+                >
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm shadow-sm">
+                    <div className="flex items-center gap-3">
+                      {selectedPerson.faceImageUrl ? (
+                        <img
+                          src={selectedPerson.faceImageUrl}
+                          alt={`Rostro de ${selectedPerson.nombre}`}
+                          className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                          <svg
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            fill="#94a3b8"
+                          >
+                            <circle cx="12" cy="9" r="4" />
+                            <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+                          </svg>
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium">{selectedPerson.nombre}</p>
+                        <p className="text-slate-500">{selectedPerson.email}</p>
+                        <p className="text-slate-500">{selectedPerson.empresa}</p>
                       </div>
-                    )}
-                    <div>
-                      <p className="font-medium">{selectedPerson.nombre}</p>
-                      <p className="text-slate-500">{selectedPerson.email}</p>
-                      <p className="text-slate-500">{selectedPerson.empresa}</p>
                     </div>
                   </div>
-                </div>
-                <FaceRegistrationPicker
-                  onRegister={handleRegisterFaceWithImage}
-                  onRemove={handleRemoveFace}
-                  hasSavedFace={!!selectedPerson.faceDescriptor}
-                />
+                </button>
+                {showRegisterCapture && (
+                  <FaceRegistrationPicker
+                    onRegister={handleRegisterFaceWithImage}
+                    onRemove={handleRemoveFace}
+                    hasSavedFace={!!selectedPerson.faceDescriptor}
+                  />
+                )}
                 {registerMessage && (
                   <p className="text-sm text-slate-600">{registerMessage}</p>
                 )}
