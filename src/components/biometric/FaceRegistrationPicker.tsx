@@ -73,9 +73,9 @@ export default function FaceRegistrationPicker({
         }
 
         if (
-          detection?.detection?.score > 0.6 &&
+          detection?.detection?.score > 0.5 &&
           capturesRef.current < MAX_CAPTURES &&
-          Date.now() - lastCaptureRef.current > 1200
+          Date.now() - lastCaptureRef.current > 900
         ) {
           lastCaptureRef.current = Date.now();
           await captureFrame();
@@ -339,36 +339,45 @@ export default function FaceRegistrationPicker({
         )}
       </div>
 
-      <div className="text-xs text-slate-500">
-        Se tomarán {MIN_CAPTURES} a {MAX_CAPTURES} fotos automáticamente al detectar el rostro.
-      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {Array.from({ length: MAX_CAPTURES }).map((_, index) => {
+          const item = captures[index] || null;
+          const isSelected = item?.id && selectedId === item.id;
 
-      {captures.length > 0 && (
-        <div className="grid grid-cols-4 gap-2">
-          {captures.map(item => (
-            <div key={item.id} className="relative">
+          return (
+            <div key={item?.id || `empty-${index}`} className="relative">
               <button
                 type="button"
                 onClick={() => {
+                  if (!item) return;
                   setSelectedId(item.id);
                   setManualSelection(true);
                 }}
-                className={`rounded border-2 ${selectedId === item.id ? 'border-blue-500' : 'border-transparent'}`}
+                className={`rounded border-2 w-full h-20 ${
+                  item ? '' : 'border-dashed border-slate-200'
+                } ${isSelected ? 'border-blue-500' : 'border-transparent'}`}
+                disabled={!item}
               >
-                <img src={item.imageUrl} alt="captura" className="w-full h-20 object-cover rounded" />
+                {item ? (
+                  <img src={item.imageUrl} alt="captura" className="w-full h-20 object-cover rounded" />
+                ) : (
+                  <div className="w-full h-20 rounded bg-slate-100" />
+                )}
               </button>
-              <button
-                type="button"
-                onClick={() => handleRemoveCapture(item.id)}
-                className="absolute top-1 left-1 h-6 w-6 rounded-full bg-black/70 text-white text-xs flex items-center justify-center"
-                aria-label="Eliminar captura"
-              >
-                ✕
-              </button>
+              {item && (
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCapture(item.id)}
+                  className="absolute top-1 left-1 h-6 w-6 rounded-full bg-black/70 text-white text-xs flex items-center justify-center"
+                  aria-label="Eliminar captura"
+                >
+                  ✕
+                </button>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
 
       <div className="flex items-center gap-2 text-sm">
         <button
