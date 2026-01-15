@@ -33,6 +33,7 @@ export default function FaceRegistrationPicker({
   const capturesRef = useRef(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [manualSelection, setManualSelection] = useState(false);
+  const manualSelectionRef = useRef(false);
   const [message, setMessage] = useState<string | null>(null);
   const lastCaptureRef = useRef<number>(0);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -94,6 +95,10 @@ export default function FaceRegistrationPicker({
       stopStream();
     };
   }, []);
+
+  useEffect(() => {
+    manualSelectionRef.current = manualSelection;
+  }, [manualSelection]);
 
   useEffect(() => {
     if (manualSelection && selectedId && isStreaming) {
@@ -196,11 +201,13 @@ export default function FaceRegistrationPicker({
     };
 
     let nextCount = 0;
+    nextCount = capturesRef.current + 1;
     setCaptures(prev => {
       const next = [...prev, item];
-      nextCount = next.length;
       capturesRef.current = nextCount;
-      if (!selectedId) {
+      if (!manualSelectionRef.current) {
+        setSelectedId(item.id);
+      } else if (!selectedId) {
         setSelectedId(item.id);
       }
       return next;
@@ -221,6 +228,9 @@ export default function FaceRegistrationPicker({
       capturesRef.current = next.length;
       if (selectedId === captureId) {
         setSelectedId(next[0]?.id || null);
+        if (next.length === 0) {
+          setManualSelection(false);
+        }
       }
       return next;
     });
@@ -238,7 +248,8 @@ export default function FaceRegistrationPicker({
     stopStream();
   };
 
-  const selectedCapture = captures.find(item => item.id === selectedId) || null;
+  const selectedCapture =
+    manualSelection ? captures.find(item => item.id === selectedId) || null : null;
 
   return (
     <div className="space-y-4">
@@ -284,28 +295,30 @@ export default function FaceRegistrationPicker({
             {faceDetection.detection?.score > 0.5 ? 'Rostro detectado' : 'Ajustando...'}
           </div>
         )}
-        <div className="absolute top-2 right-2 flex items-center gap-2">
-          {!isStreaming ? (
-            <button
-              type="button"
-              onClick={startCamera}
-              disabled={isStartingCamera}
-              className="h-9 w-9 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow hover:bg-white"
-              aria-label="Activar cámara"
-            >
-              ▶
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={stopStream}
-              className="h-9 w-9 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow hover:bg-white"
-              aria-label="Detener cámara"
-            >
-              ■
-            </button>
-          )}
-        </div>
+        {!selectedCapture && (
+          <div className="absolute top-2 right-2 flex items-center gap-2">
+            {!isStreaming ? (
+              <button
+                type="button"
+                onClick={startCamera}
+                disabled={isStartingCamera}
+                className="h-9 w-9 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow hover:bg-white"
+                aria-label="Activar cámara"
+              >
+                ▶
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={stopStream}
+                className="h-9 w-9 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow hover:bg-white"
+                aria-label="Detener cámara"
+              >
+                ■
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {cameraError && (
@@ -333,17 +346,26 @@ export default function FaceRegistrationPicker({
       {captures.length > 0 && (
         <div className="grid grid-cols-4 gap-2">
           {captures.map(item => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => {
-                setSelectedId(item.id);
-                setManualSelection(true);
-              }}
-              className={`rounded border ${selectedId === item.id ? 'border-slate-900' : 'border-slate-200'}`}
-            >
-              <img src={item.imageUrl} alt="captura" className="w-full h-20 object-cover rounded" />
-            </button>
+            <div key={item.id} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedId(item.id);
+                  setManualSelection(true);
+                }}
+                className={`rounded border-2 ${selectedId === item.id ? 'border-blue-500' : 'border-transparent'}`}
+              >
+                <img src={item.imageUrl} alt="captura" className="w-full h-20 object-cover rounded" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRemoveCapture(item.id)}
+                className="absolute top-1 left-1 h-6 w-6 rounded-full bg-black/70 text-white text-xs flex items-center justify-center"
+                aria-label="Eliminar captura"
+              >
+                ✕
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -352,44 +374,10 @@ export default function FaceRegistrationPicker({
         <button
           type="button"
           onClick={handleRegister}
-          disabled={captures.length < MIN_CAPTURES}
+          disabled={captures.length < MIN_CAPTURES || !selectedId}
           className="px-4 py-2 rounded bg-slate-900 text-white disabled:opacity-50"
         >
-          Registrar rostro
-        </button>
-        {selectedId && (
-          <button
-            type="button"
-          onClick={() => {
-            handleRemoveCapture(selectedId);
-            setManualSelection(false);
-          }}
-            className="px-4 py-2 rounded border border-red-200 text-red-600"
-          >
-            Eliminar captura
-          </button>
-        )}
-        {!isStreaming && captures.length < MAX_CAPTURES && !selectedCapture && (
-          <button
-            type="button"
-            onClick={startCamera}
-            disabled={isStartingCamera}
-            className="px-4 py-2 rounded border border-slate-300"
-          >
-            Sacar más fotos
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            setCaptures([]);
-            setSelectedId(null);
-            capturesRef.current = 0;
-            setManualSelection(false);
-          }}
-          className="px-4 py-2 rounded border border-slate-300"
-        >
-          Limpiar capturas
+          Confirmar selección
         </button>
       </div>
 
