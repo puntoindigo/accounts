@@ -1,5 +1,5 @@
 import { debugError } from './debug';
-import { supabaseAdmin, supabaseServiceKey, supabaseUrl } from './supabase-admin';
+import { getSupabaseAdmin, supabaseServiceKey, supabaseUrl } from './supabase-admin';
 
 export interface Person {
   id: string;
@@ -63,6 +63,7 @@ const mapActivity = (row: any): ActivityEvent => ({
 
 export async function listPersons(): Promise<Person[]> {
   ensureSupabase();
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from('accounts_persons')
     .select('*')
@@ -73,6 +74,7 @@ export async function listPersons(): Promise<Person[]> {
 
 export async function getPerson(id: string): Promise<Person | null> {
   ensureSupabase();
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from('accounts_persons')
     .select('*')
@@ -85,6 +87,7 @@ export async function getPerson(id: string): Promise<Person | null> {
 export async function getPersonByEmail(email: string): Promise<Person | null> {
   ensureSupabase();
   const normalized = email.trim().toLowerCase();
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from('accounts_persons')
     .select('*')
@@ -110,6 +113,7 @@ export async function createPerson(input: {
     is_admin: input.isAdmin ?? false
   };
 
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from('accounts_persons')
     .insert(payload)
@@ -131,6 +135,7 @@ export async function updatePerson(
   if (typeof updates.active === 'boolean') payload.active = updates.active;
   if (typeof updates.isAdmin === 'boolean') payload.is_admin = updates.isAdmin;
 
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from('accounts_persons')
     .update(payload)
@@ -143,6 +148,7 @@ export async function updatePerson(
 
 export async function deletePerson(id: string): Promise<boolean> {
   ensureSupabase();
+  const supabaseAdmin = getSupabaseAdmin();
   const { error } = await supabaseAdmin
     .from('accounts_persons')
     .delete()
@@ -155,6 +161,7 @@ export async function saveFaceDescriptor(
   descriptor: number[]
 ): Promise<Person | null> {
   ensureSupabase();
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from('accounts_persons')
     .update({ face_descriptor: descriptor })
@@ -167,6 +174,7 @@ export async function saveFaceDescriptor(
 
 export async function clearFaceDescriptor(id: string): Promise<Person | null> {
   ensureSupabase();
+  const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from('accounts_persons')
     .update({ face_descriptor: null })
@@ -179,6 +187,7 @@ export async function clearFaceDescriptor(id: string): Promise<Person | null> {
 
 export async function listActivity(status?: ActivityStatus): Promise<ActivityEvent[]> {
   ensureSupabase();
+  const supabaseAdmin = getSupabaseAdmin();
   let query = supabaseAdmin.from('accounts_activity').select('*').order('created_at', { ascending: false });
   if (status) {
     query = query.eq('status', status);
@@ -191,6 +200,7 @@ export async function listActivity(status?: ActivityStatus): Promise<ActivityEve
 export async function recordActivityEvent(event: Omit<ActivityEvent, 'id' | 'createdAt'>): Promise<void> {
   try {
     ensureSupabase();
+    const supabaseAdmin = getSupabaseAdmin();
     const payload = {
       person_id: event.personId,
       email: event.email,
