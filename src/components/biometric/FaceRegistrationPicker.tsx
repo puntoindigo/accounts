@@ -32,6 +32,7 @@ export default function FaceRegistrationPicker({
   const [captures, setCaptures] = useState<CaptureItem[]>([]);
   const capturesRef = useRef(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [manualSelection, setManualSelection] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const lastCaptureRef = useRef<number>(0);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -95,10 +96,10 @@ export default function FaceRegistrationPicker({
   }, []);
 
   useEffect(() => {
-    if (selectedId && isStreaming) {
+    if (manualSelection && selectedId && isStreaming) {
       stopStream();
     }
-  }, [selectedId, isStreaming]);
+  }, [manualSelection, selectedId, isStreaming]);
 
   const startCamera = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -110,6 +111,7 @@ export default function FaceRegistrationPicker({
     setCameraError(null);
     setMessage(null);
     setSelectedId(null);
+    setManualSelection(false);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -193,15 +195,16 @@ export default function FaceRegistrationPicker({
       descriptor: descriptorToArray(descriptor)
     };
 
+    let nextCount = 0;
     setCaptures(prev => {
       const next = [...prev, item];
-      capturesRef.current = next.length;
+      nextCount = next.length;
+      capturesRef.current = nextCount;
       if (!selectedId) {
         setSelectedId(item.id);
       }
       return next;
     });
-    const nextCount = capturesRef.current;
     if (nextCount >= MIN_CAPTURES) {
       setMessage('Capturas listas. Elegí una y registrá el rostro.');
     } else {
@@ -230,6 +233,7 @@ export default function FaceRegistrationPicker({
     setCaptures([]);
     setSelectedId(null);
     capturesRef.current = 0;
+    setManualSelection(false);
     setMessage('Rostro registrado.');
     stopStream();
   };
@@ -332,7 +336,10 @@ export default function FaceRegistrationPicker({
             <button
               key={item.id}
               type="button"
-              onClick={() => setSelectedId(item.id)}
+              onClick={() => {
+                setSelectedId(item.id);
+                setManualSelection(true);
+              }}
               className={`rounded border ${selectedId === item.id ? 'border-slate-900' : 'border-slate-200'}`}
             >
               <img src={item.imageUrl} alt="captura" className="w-full h-20 object-cover rounded" />
@@ -353,7 +360,10 @@ export default function FaceRegistrationPicker({
         {selectedId && (
           <button
             type="button"
-            onClick={() => handleRemoveCapture(selectedId)}
+          onClick={() => {
+            handleRemoveCapture(selectedId);
+            setManualSelection(false);
+          }}
             className="px-4 py-2 rounded border border-red-200 text-red-600"
           >
             Eliminar captura
@@ -375,6 +385,7 @@ export default function FaceRegistrationPicker({
             setCaptures([]);
             setSelectedId(null);
             capturesRef.current = 0;
+            setManualSelection(false);
           }}
           className="px-4 py-2 rounded border border-slate-300"
         >
