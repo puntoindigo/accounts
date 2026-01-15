@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import FaceRecognitionCapture from '@/components/biometric/FaceRecognitionCapture';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
@@ -137,8 +137,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [formData, setFormData] = useState({ email: '', nombre: '', empresa: '' });
-  const emailInputRef = useRef<HTMLInputElement>(null);
+  const [formData, setFormData] = useState({ gmailUser: '', nombre: '', empresa: '' });
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
@@ -204,14 +203,18 @@ export default function Home() {
       const response = await fetch('/api/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          email: `${formData.gmailUser}@gmail.com`,
+          nombre: formData.nombre,
+          empresa: formData.empresa
+        })
       });
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data?.error || 'No se pudo crear la persona.');
       }
 
-      setFormData({ email: '', nombre: '', empresa: '' });
+      setFormData({ gmailUser: '', nombre: '', empresa: '' });
       await loadPersons();
     } catch (error: any) {
       setRegisterMessage(error?.message || 'Error al crear la persona.');
@@ -377,36 +380,20 @@ export default function Home() {
             <form className="space-y-3" onSubmit={handleCreatePerson}>
               <div className="space-y-1">
                 <label className="text-sm font-medium">Email Gmail</label>
-                <input
-                  value={formData.email}
-                  onChange={(event) => {
-                    const raw = event.target.value || '';
-                    const beforeAt = raw.split('@')[0] || '';
-                    const localPart = beforeAt.replace(/\s+/g, '').trim();
-                    const normalized = localPart ? `${localPart}@gmail.com` : '';
-                    setFormData(prev => ({ ...prev, email: normalized }));
-                  }}
-                  onKeyUp={() => {
-                    const input = emailInputRef.current;
-                    if (!input) return;
-                    const localLength = (input.value.split('@')[0] || '').length;
-                    requestAnimationFrame(() => {
-                      input.setSelectionRange(localLength, localLength);
-                    });
-                  }}
-                  onFocus={() => {
-                    const input = emailInputRef.current;
-                    if (!input) return;
-                    const localLength = (input.value.split('@')[0] || '').length;
-                    requestAnimationFrame(() => {
-                      input.setSelectionRange(localLength, localLength);
-                    });
-                  }}
-                  className="w-full rounded border border-slate-200 px-3 py-2 text-sm"
-                  type="email"
-                  placeholder="@gmail.com"
-                  ref={emailInputRef}
-                />
+                <div className="flex items-center rounded border border-slate-200 px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-slate-200">
+                  <input
+                    value={formData.gmailUser}
+                    onChange={(event) => {
+                      const raw = event.target.value || '';
+                      const localPart = raw.replace(/\s+/g, '').replace(/@/g, '').trim();
+                      setFormData(prev => ({ ...prev, gmailUser: localPart }));
+                    }}
+                    className="flex-1 outline-none bg-transparent"
+                    type="text"
+                    placeholder="usuario"
+                  />
+                  <span className="text-slate-400">@gmail.com</span>
+                </div>
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium">Nombre</label>
