@@ -479,7 +479,7 @@ export default function Home() {
                           event.stopPropagation();
                           handleUpdatePerson(person.id, { active: !person.active });
                         }}
-                        className="rounded border border-slate-200 px-2 py-1 bg-white hover:bg-slate-50 active:scale-[0.98] transition"
+                        className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium shadow-sm hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
                       >
                         {person.active ? 'Suspender acceso' : 'Activar acceso'}
                       </button>
@@ -489,7 +489,7 @@ export default function Home() {
                           event.stopPropagation();
                           handleUpdatePerson(person.id, { isAdmin: !person.isAdmin });
                         }}
-                        className="rounded border border-slate-200 px-2 py-1 bg-white hover:bg-slate-50 active:scale-[0.98] transition"
+                        className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium shadow-sm hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
                       >
                         {person.isAdmin ? 'Quitar admin' : 'Hacer admin'}
                       </button>
