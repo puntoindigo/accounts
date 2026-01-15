@@ -380,7 +380,8 @@ export default function Home() {
                   value={formData.email}
                   onChange={(event) => {
                     const raw = event.target.value || '';
-                    const localPart = raw.replace(/@/g, '').replace(/@gmail\.com/gi, '').trim();
+                    const beforeAt = raw.split('@')[0] || '';
+                    const localPart = beforeAt.replace(/\s+/g, '').trim();
                     const normalized = localPart ? `${localPart}@gmail.com` : '';
                     setFormData(prev => ({ ...prev, email: normalized }));
                   }}
