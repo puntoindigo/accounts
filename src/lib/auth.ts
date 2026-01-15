@@ -7,6 +7,14 @@ import { findEmployeeByFace } from '@/lib/biometric/face-matcher';
 
 const normalizeEmail = (value: string | null | undefined) => (value || '').trim().toLowerCase();
 
+const getAlwaysAllowedEmails = () => {
+  const raw = process.env.ALWAYS_ALLOWED_EMAILS || process.env.OWNER_GOOGLE_EMAIL || '';
+  return raw
+    .split(',')
+    .map(value => value.trim().toLowerCase())
+    .filter(Boolean);
+};
+
 const getRequestMeta = async () => {
   try {
     const requestHeaders = await headers();
@@ -122,6 +130,10 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === 'google') {
         const email = normalizeEmail(user.email);
+        const alwaysAllowed = getAlwaysAllowedEmails();
+        if (alwaysAllowed.includes(email)) {
+          return true;
+        }
         const persons = await listPersons();
         if (persons.length === 0) {
           return true;
