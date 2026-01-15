@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import FaceRecognitionCapture from '@/components/biometric/FaceRecognitionCapture';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
@@ -138,6 +138,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({ email: '', nombre: '', empresa: '' });
+  const emailInputRef = useRef<HTMLInputElement>(null);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
@@ -384,10 +385,20 @@ export default function Home() {
                     const localPart = beforeAt.replace(/\s+/g, '').trim();
                     const normalized = localPart ? `${localPart}@gmail.com` : '';
                     setFormData(prev => ({ ...prev, email: normalized }));
+                    const desiredPos = Math.min(
+                      event.target.selectionStart ?? localPart.length,
+                      localPart.length
+                    );
+                    requestAnimationFrame(() => {
+                      if (emailInputRef.current) {
+                        emailInputRef.current.setSelectionRange(desiredPos, desiredPos);
+                      }
+                    });
                   }}
                   className="w-full rounded border border-slate-200 px-3 py-2 text-sm"
                   type="email"
                   placeholder="@gmail.com"
+                  ref={emailInputRef}
                 />
               </div>
               <div className="space-y-1">
