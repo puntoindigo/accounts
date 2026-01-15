@@ -7,6 +7,7 @@ export interface Person {
   nombre: string;
   empresa: string;
   faceDescriptor: number[] | null;
+  faceImageUrl: string | null;
   active: boolean;
   isAdmin: boolean;
   createdAt: string;
@@ -41,6 +42,7 @@ const mapPerson = (row: any): Person => ({
   nombre: row.nombre,
   empresa: row.empresa,
   faceDescriptor: row.face_descriptor ?? null,
+  faceImageUrl: row.face_image_url ?? null,
   active: row.active,
   isAdmin: row.is_admin,
   createdAt: row.created_at,
@@ -158,13 +160,14 @@ export async function deletePerson(id: string): Promise<boolean> {
 
 export async function saveFaceDescriptor(
   id: string,
-  descriptor: number[]
+  descriptor: number[],
+  imageUrl?: string | null
 ): Promise<Person | null> {
   ensureSupabase();
   const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from('accounts_persons')
-    .update({ face_descriptor: descriptor })
+    .update({ face_descriptor: descriptor, face_image_url: imageUrl ?? null })
     .eq('id', id)
     .select('*')
     .single();
@@ -177,7 +180,7 @@ export async function clearFaceDescriptor(id: string): Promise<Person | null> {
   const supabaseAdmin = getSupabaseAdmin();
   const { data, error } = await supabaseAdmin
     .from('accounts_persons')
-    .update({ face_descriptor: null })
+    .update({ face_descriptor: null, face_image_url: null })
     .eq('id', id)
     .select('*')
     .single();

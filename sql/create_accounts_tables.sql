@@ -8,11 +8,15 @@ create table if not exists public.accounts_persons (
   nombre text not null,
   empresa text not null,
   face_descriptor jsonb,
+  face_image_url text,
   active boolean not null default true,
   is_admin boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table if exists public.accounts_persons
+  add column if not exists face_image_url text;
 
 create table if not exists public.accounts_activity (
   id uuid primary key default gen_random_uuid(),

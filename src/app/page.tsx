@@ -2,8 +2,8 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import FaceRecognitionCapture from '@/components/biometric/FaceRecognitionCapture';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
+import FaceRegistrationPicker from '@/components/biometric/FaceRegistrationPicker';
 import { useSearchParams } from 'next/navigation';
 
 interface Person {
@@ -12,6 +12,7 @@ interface Person {
   nombre: string;
   empresa: string;
   faceDescriptor: number[] | null;
+  faceImageUrl: string | null;
   active: boolean;
   isAdmin: boolean;
   createdAt: string;
@@ -138,6 +139,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({ gmailUser: '', nombre: '', empresa: '' });
+  const [showCreatePerson, setShowCreatePerson] = useState(false);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
@@ -224,7 +226,7 @@ export default function Home() {
     }
   };
 
-  const handleRegisterFace = async (descriptor: number[]) => {
+  const handleRegisterFaceWithImage = async (descriptor: number[], imageUrl: string) => {
     if (!selectedPerson) {
       setRegisterMessage('Selecciona una persona antes de registrar el rostro.');
       return;
@@ -234,7 +236,7 @@ export default function Home() {
     const response = await fetch('/api/face/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ personId: selectedPerson.id, descriptor })
+      body: JSON.stringify({ personId: selectedPerson.id, descriptor, imageUrl })
     });
     const data = await response.json();
     if (!response.ok) {
@@ -352,7 +354,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-6xl mx-auto px-6 py-12 space-y-10">
+      <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
         <header className="flex items-center justify-between">
           <div className="space-y-1">
             <h1 className="text-3xl font-semibold">Accounts — Identidad Biométrica</h1>
@@ -375,58 +377,71 @@ export default function Home() {
           </div>
         </header>
 
-        <section className="grid md:grid-cols-2 gap-6">
-          <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Crear persona</h2>
-            <form className="space-y-3" onSubmit={handleCreatePerson}>
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Email Gmail</label>
-                <div className="flex items-center rounded border border-slate-200 px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-slate-200">
-                  <input
-                    value={formData.gmailUser}
-                    onChange={(event) => {
-                      const raw = event.target.value || '';
-                      const localPart = raw.replace(/\s+/g, '').replace(/@/g, '').trim();
-                      setFormData(prev => ({ ...prev, gmailUser: localPart }));
-                    }}
-                    className="flex-1 outline-none bg-transparent"
-                    type="text"
-                    placeholder="usuario"
-                  />
-                  <span className="text-slate-400">@gmail.com</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Nombre</label>
-                <input
-                  value={formData.nombre}
-                  onChange={(event) => setFormData(prev => ({ ...prev, nombre: event.target.value }))}
-                  className="w-full rounded border border-slate-200 px-3 py-2 text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Empresa</label>
-                <input
-                  value={formData.empresa}
-                  onChange={(event) => setFormData(prev => ({ ...prev, empresa: event.target.value }))}
-                  className="w-full rounded border border-slate-200 px-3 py-2 text-sm"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={creating}
-                className="w-full rounded bg-slate-900 text-white py-2 text-sm disabled:opacity-60"
-              >
-                {creating ? 'Creando...' : 'Crear persona'}
-              </button>
-            </form>
-            {registerMessage && (
-              <p className="text-sm text-slate-600">{registerMessage}</p>
-            )}
+        <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Personas registradas</h2>
+            <button
+              type="button"
+              onClick={() => setShowCreatePerson(prev => !prev)}
+              className="rounded-full border border-slate-300 bg-white w-9 h-9 flex items-center justify-center text-lg font-semibold shadow-sm hover:bg-slate-50 active:translate-y-px transition"
+              aria-label="Crear persona"
+            >
+              +
+            </button>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
-            <h2 className="text-lg font-semibold">Personas registradas</h2>
+          {showCreatePerson && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <form className="space-y-3" onSubmit={handleCreatePerson}>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Email Gmail</label>
+                  <div className="flex items-center rounded border border-slate-200 px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-slate-200 bg-white">
+                    <input
+                      value={formData.gmailUser}
+                      onChange={(event) => {
+                        const raw = event.target.value || '';
+                        const localPart = raw.replace(/\s+/g, '').replace(/@/g, '').trim();
+                        setFormData(prev => ({ ...prev, gmailUser: localPart }));
+                      }}
+                      className="flex-1 outline-none bg-transparent"
+                      type="text"
+                      placeholder="usuario"
+                    />
+                    <span className="text-slate-400">@gmail.com</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Nombre</label>
+                  <input
+                    value={formData.nombre}
+                    onChange={(event) => setFormData(prev => ({ ...prev, nombre: event.target.value }))}
+                    className="w-full rounded border border-slate-200 px-3 py-2 text-sm bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Empresa</label>
+                  <input
+                    value={formData.empresa}
+                    onChange={(event) => setFormData(prev => ({ ...prev, empresa: event.target.value }))}
+                    className="w-full rounded border border-slate-200 px-3 py-2 text-sm bg-white"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="w-full rounded bg-slate-900 text-white py-2 text-sm disabled:opacity-60"
+                >
+                  {creating ? 'Creando...' : 'Crear persona'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {registerMessage && (
+            <p className="text-sm text-slate-600">{registerMessage}</p>
+          )}
+
+          <div className="space-y-3">
             {loading ? (
               <p className="text-sm text-slate-500">Cargando personas...</p>
             ) : error ? (
@@ -459,10 +474,32 @@ export default function Home() {
                   >
                     <div className="flex flex-col gap-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <div className="font-medium">{person.nombre}</div>
-                          <div className="text-xs text-slate-500">{person.empresa}</div>
-                          <div className="text-xs text-slate-500">{person.email}</div>
+                        <div className="flex items-center gap-3">
+                          {person.faceImageUrl ? (
+                            <img
+                              src={person.faceImageUrl}
+                              alt={`Rostro de ${person.nombre}`}
+                              className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                              <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                                fill="#94a3b8"
+                              >
+                                <circle cx="12" cy="9" r="4" />
+                                <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+                              </svg>
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-medium">{person.nombre}</div>
+                            <div className="text-xs text-slate-500">{person.empresa}</div>
+                            <div className="text-xs text-slate-500">{person.email}</div>
+                          </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-xs">
                           <span className={`px-2 py-1 rounded ${person.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -506,7 +543,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
+        <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">Identidad facial</h2>
             <div className="flex items-center gap-3">
@@ -542,14 +579,10 @@ export default function Home() {
                     <p className="text-slate-500">{selectedPerson.email}</p>
                     <p className="text-slate-500">{selectedPerson.empresa}</p>
                   </div>
-                  <FaceRecognitionCapture
-                    savedDescriptor={selectedPerson.faceDescriptor}
-                    onDescriptorCaptured={handleRegisterFace}
-                    onDescriptorRemoved={handleRemoveFace}
-                    defaultExpanded={false}
-                    title="Registro biométrico"
-                    description="Captura el rostro para asociarlo a esta persona."
-                    actionLabel="Registrar rostro"
+                  <FaceRegistrationPicker
+                    onRegister={handleRegisterFaceWithImage}
+                    onRemove={handleRemoveFace}
+                    hasSavedFace={!!selectedPerson.faceDescriptor}
                   />
                   {registerMessage && (
                     <p className="text-sm text-slate-600">{registerMessage}</p>
