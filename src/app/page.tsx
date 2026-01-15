@@ -199,6 +199,12 @@ export default function Home() {
     }
   }, [activityFilter, loadLoginEvents, status]);
 
+  useEffect(() => {
+    if (!selectedPersonId && !showActivity) {
+      setShowPersons(true);
+    }
+  }, [selectedPersonId, showActivity]);
+
   const handleCreatePerson = async (event: React.FormEvent) => {
     event.preventDefault();
     setCreating(true);
@@ -242,7 +248,7 @@ export default function Home() {
     });
     const data = await response.json();
     if (!response.ok) {
-      setRegisterMessage(data?.error || 'No se pudo registrar el rostro.');
+      setRegisterMessage('No se pudo registrar el rostro. Reintentá en unos segundos.');
       return;
     }
 
@@ -514,26 +520,24 @@ export default function Home() {
                             <div className="text-xs text-slate-500">{person.email}</div>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className={`px-2 py-1 rounded ${person.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
-                            {person.active ? 'Acceso activo' : 'Acceso suspendido'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {person.faceDescriptor?.length ? 'Rostro registrado' : 'Sin rostro registrado'}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
                         <button
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
                             handleUpdatePerson(person.id, { active: !person.active });
                           }}
-                          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-semibold shadow hover:shadow-md hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
+                          className={`inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full border ${
+                            person.active
+                              ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
+                              : 'border-slate-300 bg-slate-200 text-slate-500'
+                          }`}
                         >
-                          {person.active ? 'Suspender acceso' : 'Activar acceso'}
+                          <span className={`inline-block h-2.5 w-2.5 rounded-full ${person.active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                          {person.active ? 'Acceso activo' : 'Acceso suspendido'}
                         </button>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {person.faceDescriptor?.length ? 'Rostro registrado' : 'Sin rostro registrado'}
                       </div>
                     </div>
                   </div>
@@ -544,84 +548,85 @@ export default function Home() {
           )}
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">Identidad facial</h2>
-            <div className="flex items-center gap-3">
-              <span className={`text-sm font-medium ${faceMode === 'verify' ? 'text-slate-900' : 'text-slate-400'}`}>
-                Verificar
-              </span>
-              <button
-                type="button"
-                onClick={() => setFaceMode(faceMode === 'verify' ? 'register' : 'verify')}
-                className={`relative inline-flex h-10 w-20 items-center rounded-full transition ${
-                  faceMode === 'register' ? 'bg-slate-900' : 'bg-slate-300'
-                }`}
-                aria-label="Cambiar modo de identidad facial"
-              >
-                <span
-                  className={`inline-block h-8 w-8 transform rounded-full bg-white shadow transition ${
-                    faceMode === 'register' ? 'translate-x-10' : 'translate-x-1'
+        {selectedPerson ? (
+          <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">Identidad facial</h2>
+              <div className="flex items-center gap-3">
+                <span className={`text-sm font-medium ${faceMode === 'verify' ? 'text-slate-900' : 'text-slate-400'}`}>
+                  Verificar
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFaceMode(faceMode === 'verify' ? 'register' : 'verify')}
+                  className={`relative inline-flex h-10 w-20 items-center rounded-full transition ${
+                    faceMode === 'register' ? 'bg-slate-900' : 'bg-slate-300'
                   }`}
-                />
-              </button>
-              <span className={`text-sm font-medium ${faceMode === 'register' ? 'text-slate-900' : 'text-slate-400'}`}>
-                Registrar
-              </span>
-            </div>
-          </div>
-
-          {faceMode === 'register' ? (
-            <div className="space-y-3">
-              {selectedPerson ? (
-                <>
-                  <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm">
-                    <p className="font-medium">{selectedPerson.nombre}</p>
-                    <p className="text-slate-500">{selectedPerson.email}</p>
-                    <p className="text-slate-500">{selectedPerson.empresa}</p>
-                  </div>
-                  <FaceRegistrationPicker
-                    onRegister={handleRegisterFaceWithImage}
-                    onRemove={handleRemoveFace}
-                    hasSavedFace={!!selectedPerson.faceDescriptor}
+                  aria-label="Cambiar modo de identidad facial"
+                >
+                  <span
+                    className={`inline-block h-8 w-8 transform rounded-full bg-white shadow transition ${
+                      faceMode === 'register' ? 'translate-x-10' : 'translate-x-1'
+                    }`}
                   />
-                  {registerMessage && (
-                    <p className="text-sm text-slate-600">{registerMessage}</p>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm text-slate-500">
-                  Selecciona una persona para registrar su rostro.
-                </p>
-              )}
+                </button>
+                <span className={`text-sm font-medium ${faceMode === 'register' ? 'text-slate-900' : 'text-slate-400'}`}>
+                  Registrar
+                </span>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <FaceRecognitionAutoCapture
-                onDescriptorCaptured={handleVerifyFace}
-                defaultExpanded={false}
-                title="Verificación facial"
-                description="Captura un rostro y verifica si existe una persona coincidente."
-                actionLabel="Verificar rostro"
-                noticeLabel="Verificando identidad..."
-              />
-              {verifyMessage && (
-                <p className="text-sm text-slate-600">{verifyMessage}</p>
-              )}
-              {verificationResult && (
-                <div className="rounded border border-emerald-200 bg-emerald-50 p-4 text-sm">
-                  <p className="font-medium">{verificationResult.nombre}</p>
-                  <p className="text-slate-600">
-                    {verificationResult.email} · {verificationResult.empresa}
-                  </p>
-                  <p className="text-slate-600">
-                    Confianza: {verificationResult.confidence}% (distancia {verificationResult.distance.toFixed(3)})
-                  </p>
+
+            {faceMode === 'register' ? (
+              <div className="space-y-3">
+                <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm">
+                  <p className="font-medium">{selectedPerson.nombre}</p>
+                  <p className="text-slate-500">{selectedPerson.email}</p>
+                  <p className="text-slate-500">{selectedPerson.empresa}</p>
                 </div>
-              )}
-            </div>
-          )}
-        </section>
+                <FaceRegistrationPicker
+                  onRegister={handleRegisterFaceWithImage}
+                  onRemove={handleRemoveFace}
+                  hasSavedFace={!!selectedPerson.faceDescriptor}
+                />
+                {registerMessage && (
+                  <p className="text-sm text-slate-600">{registerMessage}</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <FaceRecognitionAutoCapture
+                  onDescriptorCaptured={handleVerifyFace}
+                  defaultExpanded={false}
+                  title="Verificación facial"
+                  description="Captura un rostro y verifica si existe una persona coincidente."
+                  actionLabel="Verificar rostro"
+                  noticeLabel="Verificando identidad..."
+                />
+                {verifyMessage && (
+                  <p className="text-sm text-slate-600">{verifyMessage}</p>
+                )}
+                {verificationResult && (
+                  <div className="rounded border border-emerald-200 bg-emerald-50 p-4 text-sm">
+                    <p className="font-medium">{verificationResult.nombre}</p>
+                    <p className="text-slate-600">
+                      {verificationResult.email} · {verificationResult.empresa}
+                    </p>
+                    <p className="text-slate-600">
+                      Confianza: {verificationResult.confidence}% (distancia {verificationResult.distance.toFixed(3)})
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        ) : (
+          <section className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2 opacity-70">
+            <h2 className="text-lg font-semibold">Identidad facial</h2>
+            <p className="text-sm text-slate-500">
+              Selecciona una persona para habilitar el módulo.
+            </p>
+          </section>
+        )}
 
         <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">

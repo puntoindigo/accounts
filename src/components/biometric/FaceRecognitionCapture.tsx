@@ -102,7 +102,7 @@ export default function FaceRecognitionCapture({
 
         const canvas = canvasRef.current;
         const video = videoRef.current;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas?.getContext('2d');
         if (!ctx || !video.videoWidth || !video.videoHeight) return;
 
         canvas.width = video.videoWidth;

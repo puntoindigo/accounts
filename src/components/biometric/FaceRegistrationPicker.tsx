@@ -56,7 +56,7 @@ export default function FaceRegistrationPicker({
 
         const canvas = canvasRef.current;
         const video = videoRef.current;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas?.getContext('2d');
         if (!ctx || !video.videoWidth || !video.videoHeight) return;
 
         canvas.width = video.videoWidth;
@@ -195,7 +195,11 @@ export default function FaceRegistrationPicker({
       return next;
     });
     const nextCount = capturesRef.current;
-    setMessage(`Captura ${nextCount} guardada.`);
+    if (nextCount >= MIN_CAPTURES) {
+      setMessage('Capturas listas. Elegí una y registrá el rostro.');
+    } else {
+      setMessage(`Captura ${nextCount} guardada.`);
+    }
     if (nextCount >= MAX_CAPTURES) {
       stopStream();
     }
@@ -207,6 +211,7 @@ export default function FaceRegistrationPicker({
     await onRegister(selected.descriptor, selected.imageUrl);
     setCaptures([]);
     setSelectedId(null);
+    capturesRef.current = 0;
     setMessage('Rostro registrado.');
     stopStream();
   };
@@ -312,6 +317,7 @@ export default function FaceRegistrationPicker({
           onClick={() => {
             setCaptures([]);
             setSelectedId(null);
+            capturesRef.current = 0;
           }}
           className="px-4 py-2 rounded border border-slate-300"
         >
