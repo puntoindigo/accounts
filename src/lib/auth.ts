@@ -7,9 +7,9 @@ import { findEmployeeByFace } from '@/lib/biometric/face-matcher';
 
 const normalizeEmail = (value: string | null | undefined) => (value || '').trim().toLowerCase();
 
-const getRequestMeta = () => {
+const getRequestMeta = async () => {
   try {
-    const requestHeaders = headers();
+    const requestHeaders = await headers();
     const forwardedFor = requestHeaders.get('x-forwarded-for') || requestHeaders.get('x-real-ip');
     const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : null;
     const city = requestHeaders.get('x-vercel-ip-city');
@@ -47,7 +47,7 @@ export const authOptions: NextAuthOptions = {
             provider: 'face',
             status: 'failed',
             reason: 'descriptor_missing',
-            ...getRequestMeta()
+            ...(await getRequestMeta())
           });
           return null;
         }
@@ -62,7 +62,7 @@ export const authOptions: NextAuthOptions = {
             provider: 'face',
             status: 'failed',
             reason: 'descriptor_invalid',
-            ...getRequestMeta()
+            ...(await getRequestMeta())
           });
           return null;
         }
@@ -74,7 +74,7 @@ export const authOptions: NextAuthOptions = {
             provider: 'face',
             status: 'failed',
             reason: 'descriptor_empty',
-            ...getRequestMeta()
+            ...(await getRequestMeta())
           });
           return null;
         }
@@ -88,7 +88,7 @@ export const authOptions: NextAuthOptions = {
             provider: 'face',
             status: 'failed',
             reason: 'no_match',
-            ...getRequestMeta()
+            ...(await getRequestMeta())
           });
           return null;
         }
@@ -101,7 +101,7 @@ export const authOptions: NextAuthOptions = {
             provider: 'face',
             status: 'failed',
             reason: 'inactive',
-            ...getRequestMeta()
+            ...(await getRequestMeta())
           });
           return null;
         }
@@ -134,7 +134,7 @@ export const authOptions: NextAuthOptions = {
             provider: 'google',
             status: 'failed',
             reason: !person ? 'not_registered' : 'inactive',
-            ...getRequestMeta()
+            ...(await getRequestMeta())
           });
           return false;
         }
@@ -182,7 +182,7 @@ export const authOptions: NextAuthOptions = {
         provider: account?.provider || 'unknown',
         status: 'success',
         reason: null,
-        ...getRequestMeta()
+        ...(await getRequestMeta())
       });
     }
   }
