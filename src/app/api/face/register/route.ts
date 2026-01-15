@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { saveFaceDescriptor } from '@/lib/identity-store';
+import { debugError } from '@/lib/debug';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  let body: any = null;
+  try {
+    body = await request.json();
+  } catch (error) {
+    debugError('Error parseando JSON en /api/face/register:', error);
+    return NextResponse.json(
+      { error: 'Solicitud inválida' },
+      { status: 400 }
+    );
+  }
   const personId = String(body?.personId || body?.employeeId || '').trim();
   const descriptor = Array.isArray(body?.descriptor) ? body.descriptor : null;
   const imageUrl = body?.imageUrl ? String(body.imageUrl) : null;
@@ -24,6 +34,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ person });
   } catch (error: any) {
+    debugError('Error en /api/face/register:', error);
     return NextResponse.json({ error: error?.message || 'Error registrando rostro' }, { status: 500 });
   }
 }

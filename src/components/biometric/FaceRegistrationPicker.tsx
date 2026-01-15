@@ -184,15 +184,19 @@ export default function FaceRegistrationPicker({
 
     const canvas = document.createElement('canvas');
     const video = videoRef.current;
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    const sourceWidth = video.videoWidth || 640;
+    const sourceHeight = video.videoHeight || 480;
+    const targetWidth = 320;
+    const scale = sourceWidth > 0 ? targetWidth / sourceWidth : 0.5;
+    canvas.width = targetWidth;
+    canvas.height = Math.round(sourceHeight * scale);
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       setMessage('No se pudo capturar la imagen.');
       return;
     }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageUrl = canvas.toDataURL('image/jpeg', 0.9);
+    const imageUrl = canvas.toDataURL('image/jpeg', 0.75);
 
     const item: CaptureItem = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
