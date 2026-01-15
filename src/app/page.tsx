@@ -700,12 +700,24 @@ export default function Home() {
                   description="Captura un rostro y verifica si existe una persona coincidente."
                   actionLabel="Verificar rostro"
                   noticeLabel="Verificando identidad..."
+                  autoCaptureDisabled={!!verificationResult}
                 />
                 {verifyMessage && (
                   <p className="text-sm text-slate-600">{verifyMessage}</p>
                 )}
                 {verificationResult && (
-                  <div className="rounded border border-emerald-200 bg-emerald-50 p-4 text-sm">
+                  <div className="relative rounded border border-emerald-200 bg-emerald-50 p-4 text-sm">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVerificationResult(null);
+                        setVerifyMessage(null);
+                      }}
+                      className="absolute top-2 right-2 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 text-xs flex items-center justify-center"
+                      aria-label="Cerrar resultado de verificación"
+                    >
+                      ✕
+                    </button>
                     <p className="font-medium">{verificationResult.nombre}</p>
                     <p className="text-slate-600">
                       {verificationResult.email} · {verificationResult.empresa}
