@@ -1,5 +1,7 @@
 -- Tablas de Accounts
 
+create extension if not exists "pgcrypto";
+
 create table if not exists public.accounts_persons (
   id uuid primary key default gen_random_uuid(),
   email text unique not null,
