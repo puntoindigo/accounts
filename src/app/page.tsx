@@ -264,7 +264,7 @@ export default function Home() {
       return;
     }
 
-    setRegisterMessage('Rostro registrado correctamente.');
+    setRegisterMessage(null);
     if (data?.person) {
       setPersons(prev => prev.map(person => (person.id === data.person.id ? data.person : person)));
       setSelectedPersonId(data.person.id);
@@ -386,11 +386,37 @@ export default function Home() {
               Este servicio centraliza el registro y verificación de identidad facial.
             </p>
           </div>
-          <div className="text-right space-y-2">
-            <p className="text-xs text-slate-500">
-              Sesión: {session?.user?.name || session?.user?.email || 'Usuario'}
-              {(session as any)?.isAdmin ? ' · Admin' : ''}
-            </p>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2">
+              {session?.user?.image ? (
+                <img
+                  src={session.user.image}
+                  alt={session.user.name || 'Perfil'}
+                  className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                  <svg
+                    width="26"
+                    height="26"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    fill="#94a3b8"
+                  >
+                    <circle cx="12" cy="9" r="4" />
+                    <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+                  </svg>
+                </div>
+              )}
+              <div className="text-center">
+                <p className="text-xs font-medium text-slate-700">
+                  {session?.user?.name || session?.user?.email || 'Usuario'}
+                </p>
+                {(session as any)?.isAdmin && (
+                  <p className="text-[10px] text-slate-500">Admin</p>
+                )}
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => signOut()}
@@ -469,10 +495,6 @@ export default function Home() {
                 </button>
               </form>
             </div>
-          )}
-
-          {registerMessage && (
-            <p className="text-sm text-slate-600">{registerMessage}</p>
           )}
 
           {showPersons && (
@@ -584,13 +606,13 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setFaceMode(faceMode === 'verify' ? 'register' : 'verify')}
-                  className={`relative inline-flex h-10 w-20 items-center rounded-full transition ${
+                  className={`relative inline-flex h-10 w-20 items-center rounded-lg transition ${
                     faceMode === 'register' ? 'bg-slate-900' : 'bg-slate-300'
                   }`}
                   aria-label="Cambiar modo de identidad facial"
                 >
                   <span
-                    className={`inline-block h-8 w-8 transform rounded-full bg-white shadow transition ${
+                    className={`inline-block h-8 w-8 transform rounded-md bg-white shadow transition ${
                       faceMode === 'register' ? 'translate-x-10' : 'translate-x-1'
                     }`}
                   />

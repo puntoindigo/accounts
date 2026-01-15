@@ -244,7 +244,7 @@ export default function FaceRegistrationPicker({
     setSelectedId(null);
     capturesRef.current = 0;
     setManualSelection(false);
-    setMessage('Rostro registrado.');
+    setMessage(null);
     stopStream();
   };
 
@@ -276,8 +276,7 @@ export default function FaceRegistrationPicker({
               />
             )}
             {!isStreaming && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-200 text-sm">
-                <span>Cámara no activa</span>
+              <div className="absolute inset-0 flex items-center justify-center">
                 <button
                   type="button"
                   onClick={startCamera}
@@ -355,7 +354,7 @@ export default function FaceRegistrationPicker({
                 }}
                 className={`rounded border-2 w-full h-20 ${
                   item ? '' : 'border-dashed border-slate-200'
-                } ${isSelected ? 'border-blue-500' : 'border-transparent'}`}
+                } ${isSelected ? 'border-blue-500 border-4 shadow-[0_0_0_2px_rgba(59,130,246,0.35)]' : 'border-transparent'}`}
                 disabled={!item}
               >
                 {item ? (
