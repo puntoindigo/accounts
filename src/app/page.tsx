@@ -147,6 +147,7 @@ export default function Home() {
   const [loginEvents, setLoginEvents] = useState<LoginEvent[]>([]);
   const [loginLoading, setLoginLoading] = useState(false);
   const [activityFilter, setActivityFilter] = useState<'all' | 'success' | 'failed'>('all');
+  const [faceMode, setFaceMode] = useState<'register' | 'verify'>('verify');
 
   const selectedPerson = useMemo(
     () => persons.find(person => person.id === selectedPersonId) || null,
@@ -450,49 +451,53 @@ export default function Home() {
                         setRegisterMessage(null);
                       }
                     }}
-                    className={`w-full text-left rounded border px-3 py-2 text-sm cursor-pointer ${
+                    className={`w-full text-left rounded border px-3 py-3 text-sm cursor-pointer ${
                       selectedPersonId === person.id
                         ? 'border-slate-900 bg-slate-50'
                         : 'border-slate-200'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{person.nombre}</span>
-                      <span className="text-xs text-slate-500">{person.email}</span>
-                    </div>
-                    <div className="text-xs text-slate-500">{person.empresa}</div>
-                    <div className="text-xs text-slate-500">
-                      {person.faceDescriptor?.length ? 'Rostro registrado' : 'Sin rostro registrado'}
-                    </div>
-                    <div className="mt-2 flex items-center gap-2 text-xs">
-                      <span className={`px-2 py-1 rounded ${person.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                        {person.active ? 'Acceso activo' : 'Acceso suspendido'}
-                      </span>
-                      <span className={`px-2 py-1 rounded ${person.isAdmin ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
-                        {person.isAdmin ? 'Admin' : 'Sin admin'}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex items-center gap-2 text-xs">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleUpdatePerson(person.id, { active: !person.active });
-                        }}
-                        className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium shadow-sm hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
-                      >
-                        {person.active ? 'Suspender acceso' : 'Activar acceso'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleUpdatePerson(person.id, { isAdmin: !person.isAdmin });
-                        }}
-                        className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium shadow-sm hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
-                      >
-                        {person.isAdmin ? 'Quitar admin' : 'Hacer admin'}
-                      </button>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="font-medium">{person.nombre}</div>
+                          <div className="text-xs text-slate-500">{person.empresa}</div>
+                          <div className="text-xs text-slate-500">{person.email}</div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className={`px-2 py-1 rounded ${person.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                            {person.active ? 'Acceso activo' : 'Acceso suspendido'}
+                          </span>
+                          <span className={`px-2 py-1 rounded ${person.isAdmin ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
+                            {person.isAdmin ? 'Admin' : 'Sin admin'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {person.faceDescriptor?.length ? 'Rostro registrado' : 'Sin rostro registrado'}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleUpdatePerson(person.id, { active: !person.active });
+                          }}
+                          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium shadow-sm hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
+                        >
+                          {person.active ? 'Suspender acceso' : 'Activar acceso'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleUpdatePerson(person.id, { isAdmin: !person.isAdmin });
+                          }}
+                          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium shadow-sm hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
+                        >
+                          {person.isAdmin ? 'Quitar admin' : 'Hacer admin'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -501,61 +506,81 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Registrar rostro de la persona</h2>
-            {selectedPerson ? (
-              <div className="space-y-3">
-                <div className="rounded border border-slate-200 bg-white p-4 text-sm">
-                  <p className="font-medium">{selectedPerson.nombre}</p>
-                  <p className="text-slate-500">{selectedPerson.email}</p>
-                  <p className="text-slate-500">{selectedPerson.empresa}</p>
-                </div>
-                <FaceRecognitionCapture
-                  savedDescriptor={selectedPerson.faceDescriptor}
-                  onDescriptorCaptured={handleRegisterFace}
-                  onDescriptorRemoved={handleRemoveFace}
-                  defaultExpanded={false}
-                  title="Registro biométrico"
-                  description="Captura el rostro para asociarlo a esta persona."
-                  actionLabel="Registrar rostro"
-                />
-                {registerMessage && (
-                  <p className="text-sm text-slate-600">{registerMessage}</p>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500">
-                Selecciona una persona para registrar su rostro.
-              </p>
-            )}
+        <section className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">Identidad facial</h2>
+            <div className="flex items-center gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setFaceMode('verify')}
+                className={`rounded border px-2 py-1 ${faceMode === 'verify' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+              >
+                Verificar
+              </button>
+              <button
+                type="button"
+                onClick={() => setFaceMode('register')}
+                className={`rounded border px-2 py-1 ${faceMode === 'register' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+              >
+                Registrar
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Verificar identidad</h2>
-            <FaceRecognitionAutoCapture
-              onDescriptorCaptured={handleVerifyFace}
-              defaultExpanded={false}
-              title="Verificación facial"
-              description="Captura un rostro y verifica si existe una persona coincidente."
-              actionLabel="Verificar rostro"
-              noticeLabel="Verificando identidad..."
-            />
-            {verifyMessage && (
-              <p className="text-sm text-slate-600">{verifyMessage}</p>
-            )}
-            {verificationResult && (
-              <div className="rounded border border-emerald-200 bg-emerald-50 p-4 text-sm">
-                <p className="font-medium">{verificationResult.nombre}</p>
-                <p className="text-slate-600">
-                  {verificationResult.email} · {verificationResult.empresa}
+          {faceMode === 'register' ? (
+            <div className="space-y-3">
+              {selectedPerson ? (
+                <>
+                  <div className="rounded border border-slate-200 bg-slate-50 p-4 text-sm">
+                    <p className="font-medium">{selectedPerson.nombre}</p>
+                    <p className="text-slate-500">{selectedPerson.email}</p>
+                    <p className="text-slate-500">{selectedPerson.empresa}</p>
+                  </div>
+                  <FaceRecognitionCapture
+                    savedDescriptor={selectedPerson.faceDescriptor}
+                    onDescriptorCaptured={handleRegisterFace}
+                    onDescriptorRemoved={handleRemoveFace}
+                    defaultExpanded={false}
+                    title="Registro biométrico"
+                    description="Captura el rostro para asociarlo a esta persona."
+                    actionLabel="Registrar rostro"
+                  />
+                  {registerMessage && (
+                    <p className="text-sm text-slate-600">{registerMessage}</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  Selecciona una persona para registrar su rostro.
                 </p>
-                <p className="text-slate-600">
-                  Confianza: {verificationResult.confidence}% (distancia {verificationResult.distance.toFixed(3)})
-                </p>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <FaceRecognitionAutoCapture
+                onDescriptorCaptured={handleVerifyFace}
+                defaultExpanded={false}
+                title="Verificación facial"
+                description="Captura un rostro y verifica si existe una persona coincidente."
+                actionLabel="Verificar rostro"
+                noticeLabel="Verificando identidad..."
+              />
+              {verifyMessage && (
+                <p className="text-sm text-slate-600">{verifyMessage}</p>
+              )}
+              {verificationResult && (
+                <div className="rounded border border-emerald-200 bg-emerald-50 p-4 text-sm">
+                  <p className="font-medium">{verificationResult.nombre}</p>
+                  <p className="text-slate-600">
+                    {verificationResult.email} · {verificationResult.empresa}
+                  </p>
+                  <p className="text-slate-600">
+                    Confianza: {verificationResult.confidence}% (distancia {verificationResult.distance.toFixed(3)})
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         <section className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
