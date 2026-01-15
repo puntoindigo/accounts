@@ -378,10 +378,15 @@ export default function Home() {
                 <label className="text-sm font-medium">Email Gmail</label>
                 <input
                   value={formData.email}
-                  onChange={(event) => setFormData(prev => ({ ...prev, email: event.target.value }))}
+                  onChange={(event) => {
+                    const raw = event.target.value || '';
+                    const localPart = raw.replace(/@/g, '').replace(/@gmail\.com/gi, '').trim();
+                    const normalized = localPart ? `${localPart}@gmail.com` : '';
+                    setFormData(prev => ({ ...prev, email: normalized }));
+                  }}
                   className="w-full rounded border border-slate-200 px-3 py-2 text-sm"
                   type="email"
-                  placeholder="usuario@gmail.com"
+                  placeholder="@gmail.com"
                 />
               </div>
               <div className="space-y-1">
