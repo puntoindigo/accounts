@@ -483,7 +483,7 @@ export default function Home() {
                             event.stopPropagation();
                             handleUpdatePerson(person.id, { active: !person.active });
                           }}
-                          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium shadow-sm hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
+                          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-semibold shadow hover:shadow-md hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
                         >
                           {person.active ? 'Suspender acceso' : 'Activar acceso'}
                         </button>
@@ -493,7 +493,7 @@ export default function Home() {
                             event.stopPropagation();
                             handleUpdatePerson(person.id, { isAdmin: !person.isAdmin });
                           }}
-                          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium shadow-sm hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
+                          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-semibold shadow hover:shadow-md hover:bg-slate-50 active:shadow-inner active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 transition"
                         >
                           {person.isAdmin ? 'Quitar admin' : 'Hacer admin'}
                         </button>
@@ -509,21 +509,27 @@ export default function Home() {
         <section className="rounded-lg border border-slate-200 bg-white p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">Identidad facial</h2>
-            <div className="flex items-center gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => setFaceMode('verify')}
-                className={`rounded border px-2 py-1 ${faceMode === 'verify' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
-              >
+            <div className="flex items-center gap-3">
+              <span className={`text-sm font-medium ${faceMode === 'verify' ? 'text-slate-900' : 'text-slate-400'}`}>
                 Verificar
-              </button>
+              </span>
               <button
                 type="button"
-                onClick={() => setFaceMode('register')}
-                className={`rounded border px-2 py-1 ${faceMode === 'register' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                onClick={() => setFaceMode(faceMode === 'verify' ? 'register' : 'verify')}
+                className={`relative inline-flex h-10 w-20 items-center rounded-full transition ${
+                  faceMode === 'register' ? 'bg-slate-900' : 'bg-slate-300'
+                }`}
+                aria-label="Cambiar modo de identidad facial"
               >
-                Registrar
+                <span
+                  className={`inline-block h-8 w-8 transform rounded-full bg-white shadow transition ${
+                    faceMode === 'register' ? 'translate-x-10' : 'translate-x-1'
+                  }`}
+                />
               </button>
+              <span className={`text-sm font-medium ${faceMode === 'register' ? 'text-slate-900' : 'text-slate-400'}`}>
+                Registrar
+              </span>
             </div>
           </div>
 
