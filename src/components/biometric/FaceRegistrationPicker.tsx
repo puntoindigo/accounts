@@ -94,6 +94,12 @@ export default function FaceRegistrationPicker({
     };
   }, []);
 
+  useEffect(() => {
+    if (selectedId && isStreaming) {
+      stopStream();
+    }
+  }, [selectedId, isStreaming]);
+
   const startCamera = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setCameraError('Tu navegador no soporta acceso a la cámara.');
@@ -103,6 +109,7 @@ export default function FaceRegistrationPicker({
     setIsStartingCamera(true);
     setCameraError(null);
     setMessage(null);
+    setSelectedId(null);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -205,6 +212,17 @@ export default function FaceRegistrationPicker({
     }
   };
 
+  const handleRemoveCapture = (captureId: string) => {
+    setCaptures(prev => {
+      const next = prev.filter(item => item.id !== captureId);
+      capturesRef.current = next.length;
+      if (selectedId === captureId) {
+        setSelectedId(next[0]?.id || null);
+      }
+      return next;
+    });
+  };
+
   const handleRegister = async () => {
     const selected = captures.find(item => item.id === selectedId) || captures[0];
     if (!selected) return;
@@ -216,26 +234,46 @@ export default function FaceRegistrationPicker({
     stopStream();
   };
 
+  const selectedCapture = captures.find(item => item.id === selectedId) || null;
+
   return (
     <div className="space-y-4">
       <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className={`w-full h-full object-cover ${isStreaming ? 'block' : 'hidden'}`}
-        />
-        {isStreaming && (
-          <canvas
-            ref={canvasRef}
-            className="absolute inset-0 w-full h-full pointer-events-none"
+        {selectedCapture ? (
+          <img
+            src={selectedCapture.imageUrl}
+            alt="Captura seleccionada"
+            className="w-full h-full object-cover"
           />
-        )}
-        {!isStreaming && (
-          <div className="absolute inset-0 flex items-center justify-center text-slate-200 text-sm">
-            Cámara no activa
-          </div>
+        ) : (
+          <>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`w-full h-full object-cover ${isStreaming ? 'block' : 'hidden'}`}
+            />
+            {isStreaming && (
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 w-full h-full pointer-events-none"
+              />
+            )}
+            {!isStreaming && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-200 text-sm">
+                <span>Cámara no activa</span>
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  disabled={isStartingCamera}
+                  className="rounded-full bg-white/90 text-slate-900 px-4 py-2 text-xs font-semibold shadow hover:bg-white"
+                >
+                  {isStartingCamera ? 'Activando...' : 'Activar cámara'}
+                </button>
+              </div>
+            )}
+          </>
         )}
         {isStreaming && faceDetection && (
           <div className="absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium bg-slate-900/70 text-white">
@@ -312,6 +350,25 @@ export default function FaceRegistrationPicker({
         >
           Registrar rostro
         </button>
+        {selectedId && (
+          <button
+            type="button"
+            onClick={() => handleRemoveCapture(selectedId)}
+            className="px-4 py-2 rounded border border-red-200 text-red-600"
+          >
+            Eliminar captura
+          </button>
+        )}
+        {!isStreaming && captures.length < MAX_CAPTURES && !selectedCapture && (
+          <button
+            type="button"
+            onClick={startCamera}
+            disabled={isStartingCamera}
+            className="px-4 py-2 rounded border border-slate-300"
+          >
+            Sacar más fotos
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {

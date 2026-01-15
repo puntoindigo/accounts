@@ -134,6 +134,8 @@ function LoginGate({
 
 export default function Home() {
   const { data: session, status } = useSession();
+  const PERSONS_PAGE_SIZE = 10;
+  const ACTIVITY_PAGE_SIZE = 10;
   const [persons, setPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -152,6 +154,8 @@ export default function Home() {
   const [faceMode, setFaceMode] = useState<'register' | 'verify'>('verify');
   const [showPersons, setShowPersons] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [personsVisibleCount, setPersonsVisibleCount] = useState(PERSONS_PAGE_SIZE);
+  const [activityVisibleCount, setActivityVisibleCount] = useState(ACTIVITY_PAGE_SIZE);
 
   const selectedPerson = useMemo(
     () => persons.find(person => person.id === selectedPersonId) || null,
@@ -205,6 +209,14 @@ export default function Home() {
     }
   }, [selectedPersonId, showActivity]);
 
+  useEffect(() => {
+    setPersonsVisibleCount(prev => Math.min(Math.max(prev, PERSONS_PAGE_SIZE), persons.length || PERSONS_PAGE_SIZE));
+  }, [persons.length]);
+
+  useEffect(() => {
+    setActivityVisibleCount(prev => Math.min(Math.max(prev, ACTIVITY_PAGE_SIZE), loginEvents.length || ACTIVITY_PAGE_SIZE));
+  }, [loginEvents.length]);
+
   const handleCreatePerson = async (event: React.FormEvent) => {
     event.preventDefault();
     setCreating(true);
@@ -253,6 +265,10 @@ export default function Home() {
     }
 
     setRegisterMessage('Rostro registrado correctamente.');
+    if (data?.person) {
+      setPersons(prev => prev.map(person => (person.id === data.person.id ? data.person : person)));
+      setSelectedPersonId(data.person.id);
+    }
     await loadPersons();
   };
 
@@ -468,82 +484,91 @@ export default function Home() {
               ) : persons.length === 0 ? (
                 <p className="text-sm text-slate-500">No hay personas registradas.</p>
               ) : (
-                <div className="space-y-2 h-[640px] overflow-y-auto pr-1">
-                  {persons.map(person => (
-                  <div
-                    key={person.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
-                      setSelectedPersonId(person.id);
-                      setRegisterMessage(null);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
+                <div className="space-y-2">
+                  {persons.slice(0, personsVisibleCount).map(person => (
+                    <div
+                      key={person.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
                         setSelectedPersonId(person.id);
                         setRegisterMessage(null);
-                      }
-                    }}
-                    className={`w-full text-left rounded border px-3 py-3 text-sm cursor-pointer ${
-                      selectedPersonId === person.id
-                        ? 'border-slate-900 bg-slate-50'
-                        : 'border-slate-200'
-                    } ${person.active ? '' : 'bg-slate-50 opacity-70'}`}
-                  >
-                    <div className="flex flex-col gap-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-3">
-                          {person.faceImageUrl ? (
-                            <img
-                              src={person.faceImageUrl}
-                              alt={`Rostro de ${person.nombre}`}
-                              className="w-10 h-10 rounded-full object-cover border border-slate-200"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                              <svg
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                                fill="#94a3b8"
-                              >
-                                <circle cx="12" cy="9" r="4" />
-                                <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
-                              </svg>
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedPersonId(person.id);
+                          setRegisterMessage(null);
+                        }
+                      }}
+                      className={`w-full text-left rounded border px-3 py-3 text-sm cursor-pointer ${
+                        selectedPersonId === person.id
+                          ? 'border-slate-900 bg-slate-50'
+                          : 'border-slate-200'
+                      } ${person.active ? '' : 'bg-slate-50 opacity-70'}`}
+                    >
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-3">
+                            {person.faceImageUrl ? (
+                              <img
+                                src={person.faceImageUrl}
+                                alt={`Rostro de ${person.nombre}`}
+                                className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                                <svg
+                                  width="24"
+                                  height="24"
+                                  viewBox="0 0 24 24"
+                                  aria-hidden="true"
+                                  fill="#94a3b8"
+                                >
+                                  <circle cx="12" cy="9" r="4" />
+                                  <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+                                </svg>
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-medium">{person.nombre}</div>
+                              <div className="text-xs text-slate-500">{person.empresa}</div>
+                              <div className="text-xs text-slate-500">{person.email}</div>
                             </div>
-                          )}
-                          <div>
-                            <div className="font-medium">{person.nombre}</div>
-                            <div className="text-xs text-slate-500">{person.empresa}</div>
-                            <div className="text-xs text-slate-500">{person.email}</div>
                           </div>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleUpdatePerson(person.id, { active: !person.active });
+                            }}
+                            className={`inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full border ${
+                              person.active
+                                ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
+                                : 'border-slate-300 bg-slate-200 text-slate-500'
+                            }`}
+                          >
+                            <span className={`inline-block h-2.5 w-2.5 rounded-full ${person.active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                            {person.active ? 'Acceso activo' : 'Acceso suspendido'}
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleUpdatePerson(person.id, { active: !person.active });
-                          }}
-                          className={`inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full border ${
-                            person.active
-                              ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
-                              : 'border-slate-300 bg-slate-200 text-slate-500'
-                          }`}
-                        >
-                          <span className={`inline-block h-2.5 w-2.5 rounded-full ${person.active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                          {person.active ? 'Acceso activo' : 'Acceso suspendido'}
-                        </button>
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {person.faceDescriptor?.length ? 'Rostro registrado' : 'Sin rostro registrado'}
+                        <div className="text-xs text-slate-500">
+                          {person.faceDescriptor?.length ? 'Rostro registrado' : 'Sin rostro registrado'}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                  {personsVisibleCount < persons.length && (
+                    <button
+                      type="button"
+                      onClick={() => setPersonsVisibleCount(prev => Math.min(prev + PERSONS_PAGE_SIZE, persons.length))}
+                      className="w-full rounded border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                    >
+                      Cargar más
+                    </button>
+                  )}
+                </div>
+              )}
           </div>
           )}
         </section>
@@ -679,8 +704,8 @@ export default function Home() {
               ) : loginEvents.length === 0 ? (
                 <p className="text-sm text-slate-500">Sin registros todavía.</p>
               ) : (
-                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                  {loginEvents.map(event => (
+                <div className="space-y-2">
+                  {loginEvents.slice(0, activityVisibleCount).map(event => (
                     <div
                       key={event.id}
                       className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-slate-100 rounded px-3 py-2 text-sm"
@@ -713,6 +738,15 @@ export default function Home() {
                       </span>
                     </div>
                   ))}
+                  {activityVisibleCount < loginEvents.length && (
+                    <button
+                      type="button"
+                      onClick={() => setActivityVisibleCount(prev => Math.min(prev + ACTIVITY_PAGE_SIZE, loginEvents.length))}
+                      className="w-full rounded border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                    >
+                      Cargar más
+                    </button>
+                  )}
                 </div>
               )}
             </>
