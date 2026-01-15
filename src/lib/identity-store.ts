@@ -165,14 +165,20 @@ export async function saveFaceDescriptor(
 ): Promise<Person | null> {
   ensureSupabase();
   const supabaseAdmin = getSupabaseAdmin();
+  const existing = await getPerson(id);
+  if (!existing) {
+    return null;
+  }
   const { data, error } = await supabaseAdmin
     .from('accounts_persons')
     .update({ face_descriptor: descriptor, face_image_url: imageUrl ?? null })
     .eq('id', id)
     .select('*')
-    .single();
-  if (error) return null;
-  return mapPerson(data);
+    .maybeSingle();
+  if (error) {
+    throw error;
+  }
+  return data ? mapPerson(data) : existing;
 }
 
 export async function clearFaceDescriptor(id: string): Promise<Person | null> {
