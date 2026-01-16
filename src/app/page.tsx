@@ -76,6 +76,7 @@ function LoginGate({
   setAuthMessage: (value: string | null) => void;
 }) {
   const searchParams = useSearchParams();
+  const [loginMethod, setLoginMethod] = useState<'google' | 'face' | 'rfid'>('google');
   const [rfidUid, setRfidUid] = useState('');
   const [rfidLoading, setRfidLoading] = useState(false);
   const [rfidMessage, setRfidMessage] = useState<string | null>(null);
@@ -129,92 +130,126 @@ function LoginGate({
           <p className="text-sm text-slate-500">Seleccioná un método de acceso</p>
         </div>
 
-        <button
-          type="button"
-          className="w-full rounded-lg border border-slate-200 bg-white text-slate-700 py-2 text-sm font-medium shadow-sm hover:bg-slate-50 flex items-center justify-center gap-2"
-          onClick={() => signIn('google')}
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 48 48"
-            aria-hidden="true"
-          >
-            <path
-              fill="#EA4335"
-              d="M24 9.5c3.44 0 6.5 1.18 8.92 3.12l6.66-6.66C35.54 2.36 30.08 0 24 0 14.62 0 6.54 5.38 2.54 13.22l7.76 6.02C12.1 13.02 17.6 9.5 24 9.5z"
-            />
-            <path
-              fill="#34A853"
-              d="M46.98 24.56c0-1.58-.14-3.1-.4-4.56H24v9.1h12.98c-.56 2.98-2.24 5.5-4.76 7.2l7.32 5.66c4.28-3.94 6.44-9.74 6.44-17.4z"
-            />
-            <path
-              fill="#4A90E2"
-              d="M10.3 28.86a14.5 14.5 0 0 1 0-9.72l-7.76-6.02A23.96 23.96 0 0 0 0 24c0 3.9.94 7.58 2.54 10.88l7.76-6.02z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M24 48c6.48 0 11.92-2.14 15.88-5.8l-7.32-5.66c-2.02 1.36-4.6 2.16-8.56 2.16-6.4 0-11.9-3.52-13.7-9.74l-7.76 6.02C6.54 42.62 14.62 48 24 48z"
-            />
-          </svg>
-          Acceder con Google
-        </button>
-
-        <div className="flex items-center gap-3 text-xs text-slate-400">
-          <span className="flex-1 border-t border-slate-200" />
-          o
-          <span className="flex-1 border-t border-slate-200" />
+        <div className="flex items-center justify-center gap-2">
+          {([
+            {
+              id: 'google',
+              label: 'Google',
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+                  <path fill="#EA4335" d="M24 9.5c3.44 0 6.5 1.18 8.92 3.12l6.66-6.66C35.54 2.36 30.08 0 24 0 14.62 0 6.54 5.38 2.54 13.22l7.76 6.02C12.1 13.02 17.6 9.5 24 9.5z" />
+                  <path fill="#34A853" d="M46.98 24.56c0-1.58-.14-3.1-.4-4.56H24v9.1h12.98c-.56 2.98-2.24 5.5-4.76 7.2l7.32 5.66c4.28-3.94 6.44-9.74 6.44-17.4z" />
+                  <path fill="#4A90E2" d="M10.3 28.86a14.5 14.5 0 0 1 0-9.72l-7.76-6.02A23.96 23.96 0 0 0 0 24c0 3.9.94 7.58 2.54 10.88l7.76-6.02z" />
+                  <path fill="#FBBC05" d="M24 48c6.48 0 11.92-2.14 15.88-5.8l-7.32-5.66c-2.02 1.36-4.6 2.16-8.56 2.16-6.4 0-11.9-3.52-13.7-9.74l-7.76 6.02C6.54 42.62 14.62 48 24 48z" />
+                </svg>
+              )
+            },
+            {
+              id: 'face',
+              label: 'FR',
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#1d9bf0" aria-hidden="true">
+                  <path d="M5 7a2 2 0 0 1 2-2h2V3H7a4 4 0 0 0-4 4v2h2V7zm12-4h-2v2h2a2 2 0 0 1 2 2v2h2V7a4 4 0 0 0-4-4zm2 14a2 2 0 0 1-2 2h-2v2h2a4 4 0 0 0 4-4v-2h-2v2zM5 17v-2H3v2a4 4 0 0 0 4 4h2v-2H7a2 2 0 0 1-2-2zm3-6a4 4 0 1 0 8 0 4 4 0 0 0-8 0zm2 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0z" />
+                </svg>
+              )
+            },
+            {
+              id: 'rfid',
+              label: 'RFID',
+              icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#22c55e" aria-hidden="true">
+                  <path d="M4 6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1h2V6a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v10a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-1h-2v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6zm7 2h6v2h-6V8zm0 4h6v2h-6v-2zm0 4h4v2h-4v-2z" />
+                </svg>
+              )
+            }
+          ] as const).map(item => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setLoginMethod(item.id)}
+              className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition ${
+                loginMethod === item.id
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </button>
+          ))}
         </div>
 
-        <div className="rounded-lg border border-slate-200 p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-700">Reconocimiento facial</h2>
-          <FaceRecognitionAutoCapture
-            onDescriptorCaptured={onFaceLogin}
-            defaultExpanded={false}
-            title="Login biométrico"
-            description="Captura tu rostro para iniciar sesión."
-            actionLabel="Iniciar sesión"
-            noticeLabel="Intentando iniciar sesión..."
-            autoCaptureDisabled={faceLoginLocked}
-          />
-        </div>
-
-        <div className="rounded-lg border border-slate-200 p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-700">Tarjeta RFID</h2>
-          <p className="text-xs text-slate-500">
-            Acercá la tarjeta al lector o pegá el UID.
-          </p>
-          <input
-            value={rfidUid}
-            onChange={(event) => setRfidUid(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                handleRfidLogin();
-              }
-            }}
-            ref={rfidInputRef}
-            className="w-full rounded border border-slate-200 px-3 py-2 text-sm font-mono"
-            placeholder="UID de tarjeta"
-            disabled={rfidAvailable === false}
-          />
+        {loginMethod === 'google' && (
           <button
             type="button"
-            onClick={handleRfidLogin}
-            disabled={rfidLoading || rfidAvailable === false}
-            className="w-full rounded bg-slate-900 text-white py-2 text-sm disabled:opacity-60"
+            className="w-full rounded-xl border border-slate-200 bg-white text-slate-700 py-3 text-sm font-medium shadow-sm hover:bg-slate-50 flex items-center justify-center gap-2"
+            onClick={() => signIn('google')}
           >
-            {rfidLoading ? 'Validando...' : 'Validar con RFID'}
+            <span className="h-8 w-8 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#EA4335" d="M24 9.5c3.44 0 6.5 1.18 8.92 3.12l6.66-6.66C35.54 2.36 30.08 0 24 0 14.62 0 6.54 5.38 2.54 13.22l7.76 6.02C12.1 13.02 17.6 9.5 24 9.5z" />
+                <path fill="#34A853" d="M46.98 24.56c0-1.58-.14-3.1-.4-4.56H24v9.1h12.98c-.56 2.98-2.24 5.5-4.76 7.2l7.32 5.66c4.28-3.94 6.44-9.74 6.44-17.4z" />
+                <path fill="#4A90E2" d="M10.3 28.86a14.5 14.5 0 0 1 0-9.72l-7.76-6.02A23.96 23.96 0 0 0 0 24c0 3.9.94 7.58 2.54 10.88l7.76-6.02z" />
+                <path fill="#FBBC05" d="M24 48c6.48 0 11.92-2.14 15.88-5.8l-7.32-5.66c-2.02 1.36-4.6 2.16-8.56 2.16-6.4 0-11.9-3.52-13.7-9.74l-7.76 6.02C6.54 42.62 14.62 48 24 48z" />
+              </svg>
+            </span>
+            Validar con Google
           </button>
-          {rfidAvailable === false && (
-            <p className="text-xs text-slate-400">
-              No hay tarjetas RFID registradas todavía.
+        )}
+
+        {loginMethod === 'face' && (
+          <div className="rounded-lg border border-slate-200 p-4 space-y-3">
+            <h2 className="text-sm font-semibold text-slate-700">Reconocimiento facial</h2>
+            <FaceRecognitionAutoCapture
+              onDescriptorCaptured={onFaceLogin}
+              defaultExpanded={false}
+              title="Login biométrico"
+              description="Captura tu rostro para iniciar sesión."
+              actionLabel="Iniciar sesión"
+              noticeLabel="Intentando iniciar sesión..."
+              autoCaptureDisabled={faceLoginLocked}
+            />
+          </div>
+        )}
+
+        {loginMethod === 'rfid' && (
+          <div className="rounded-lg border border-slate-200 p-4 space-y-3">
+            <h2 className="text-sm font-semibold text-slate-700">Tarjeta RFID</h2>
+            <p className="text-xs text-slate-500">
+              Acercá la tarjeta al lector o pegá el UID.
             </p>
-          )}
-          {rfidMessage && (
-            <p className="text-xs text-slate-600">{rfidMessage}</p>
-          )}
-        </div>
+            <input
+              value={rfidUid}
+              onChange={(event) => setRfidUid(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  handleRfidLogin();
+                }
+              }}
+              ref={rfidInputRef}
+              className="w-full rounded border border-slate-200 px-3 py-2 text-sm font-mono"
+              placeholder="UID de tarjeta"
+              disabled={rfidAvailable === false}
+            />
+            <button
+              type="button"
+              onClick={handleRfidLogin}
+              disabled={rfidLoading || rfidAvailable === false}
+              className="w-full rounded bg-slate-900 text-white py-2 text-sm disabled:opacity-60"
+            >
+              {rfidLoading ? 'Validando...' : 'Validar con RFID'}
+            </button>
+            {rfidAvailable === false && (
+              <p className="text-xs text-slate-400">
+                No hay tarjetas RFID registradas todavía.
+              </p>
+            )}
+            {rfidMessage && (
+              <p className="text-xs text-slate-600">{rfidMessage}</p>
+            )}
+          </div>
+        )}
 
         {authMessage && (
           <p className="text-xs text-red-600 text-center">{authMessage}</p>
@@ -257,6 +292,7 @@ export default function Home() {
   const [rfidUid, setRfidUid] = useState('');
   const [rfidMessage, setRfidMessage] = useState<string | null>(null);
   const [rfidLoading, setRfidLoading] = useState(false);
+  const [rfidDeleteCard, setRfidDeleteCard] = useState<RfidCard | null>(null);
   const [personsVisibleCount, setPersonsVisibleCount] = useState(PERSONS_PAGE_SIZE);
   const [activityVisibleCount, setActivityVisibleCount] = useState(ACTIVITY_PAGE_SIZE);
 
@@ -529,25 +565,25 @@ export default function Home() {
     }
   };
 
-  const handleDeactivateRfid = async (cardId: string) => {
+  const handleToggleRfid = async (cardId: string, active: boolean) => {
     setRfidLoading(true);
     setRfidMessage(null);
     try {
       const response = await fetch(`/api/rfid/${cardId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active: false })
+        body: JSON.stringify({ active })
       });
       const data = await response.json();
       if (!response.ok || !data?.card) {
-        setRfidMessage(data?.error || 'No se pudo desactivar la tarjeta.');
+        setRfidMessage(data?.error || 'No se pudo actualizar la tarjeta.');
         return;
       }
       if (selectedPerson) {
         await loadRfidCards(selectedPerson.id);
       }
     } catch {
-      setRfidMessage('No se pudo desactivar la tarjeta.');
+      setRfidMessage('No se pudo actualizar la tarjeta.');
     } finally {
       setRfidLoading(false);
     }
@@ -566,6 +602,7 @@ export default function Home() {
         setRfidMessage(data?.error || 'No se pudo eliminar la tarjeta.');
         return;
       }
+      setRfidDeleteCard(null);
       await loadRfidCards(selectedPerson.id);
     } catch {
       setRfidMessage('No se pudo eliminar la tarjeta.');
@@ -720,6 +757,43 @@ export default function Home() {
                   className="rounded bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800"
                 >
                   Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {rfidDeleteCard && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Eliminar tarjeta RFID</h3>
+                <button
+                  type="button"
+                  onClick={() => setRfidDeleteCard(null)}
+                  className="h-8 w-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
+                  aria-label="Cerrar modal de eliminar"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-sm text-slate-600">
+                ¿Querés eliminar la tarjeta UID {rfidDeleteCard.uid}? Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRfidDeleteCard(null)}
+                  className="rounded border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteRfid(rfidDeleteCard.id)}
+                  className="rounded bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
+                >
+                  Eliminar
                 </button>
               </div>
             </div>
@@ -1034,78 +1108,80 @@ export default function Home() {
             </p>
           )}
 
-          {selectedPerson && (
-            <div className="space-y-3">
-              <div className="flex flex-col md:flex-row gap-2">
-                <input
-                  value={rfidUid}
-                  onChange={(event) => setRfidUid(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      handleAssociateRfid();
-                    }
-                  }}
-                  className="flex-1 rounded border border-slate-200 px-3 py-2 text-sm"
-                  placeholder="UID de tarjeta RFID"
-                />
-                <button
-                  type="button"
-                  onClick={handleAssociateRfid}
-                  disabled={rfidLoading}
-                  className="rounded bg-slate-900 text-white px-4 py-2 text-sm disabled:opacity-60"
-                >
-                  Asociar RFID
-                </button>
-              </div>
-              {rfidMessage && (
-                <p className="text-xs text-slate-600">{rfidMessage}</p>
-              )}
-              <div className="space-y-2">
-                {rfidLoading ? (
-                  <p className="text-sm text-slate-500">Cargando tarjetas...</p>
-                ) : rfidCards.length === 0 ? (
-                  <p className="text-sm text-slate-500">Sin tarjetas vinculadas.</p>
-                ) : (
-                  rfidCards.map(card => (
-                    <div
-                      key={card.id}
-                      className="flex items-center justify-between rounded border border-slate-200 px-3 py-2 text-xs"
-                    >
-                      <div>
-                        <p className="font-medium text-slate-700">UID {card.uid}</p>
-                        <p className="text-slate-500">
-                          {new Date(card.createdAt).toLocaleDateString('es-AR')}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded-full text-[10px] ${card.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
-                          {card.active ? 'Activa' : 'Inactiva'}
-                        </span>
-                        {card.active ? (
-                          <button
-                            type="button"
-                            onClick={() => handleDeactivateRfid(card.id)}
-                            className="text-[10px] text-slate-600 hover:text-slate-700"
-                          >
-                            Desactivar
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteRfid(card.id)}
-                            className="text-[10px] text-red-600 hover:text-red-700"
-                          >
-                            Eliminar
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+          <div className="space-y-3">
+            <div className="flex flex-col md:flex-row gap-2">
+              <input
+                value={rfidUid}
+                onChange={(event) => setRfidUid(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleAssociateRfid();
+                  }
+                }}
+                className="flex-1 rounded border border-slate-200 px-3 py-2 text-sm"
+                placeholder="UID de tarjeta RFID"
+                disabled={!selectedPerson}
+              />
+              <button
+                type="button"
+                onClick={handleAssociateRfid}
+                disabled={rfidLoading || !selectedPerson}
+                className="rounded bg-slate-900 text-white px-4 py-2 text-sm disabled:opacity-60"
+              >
+                Asociar RFID
+              </button>
             </div>
-          )}
+            {rfidMessage && (
+              <p className="text-xs text-slate-600">{rfidMessage}</p>
+            )}
+            <div className="space-y-2">
+              {rfidLoading ? (
+                <p className="text-sm text-slate-500">Cargando tarjetas...</p>
+              ) : rfidCards.length === 0 ? (
+                <p className="text-sm text-slate-500">Sin tarjetas vinculadas.</p>
+              ) : (
+                rfidCards.map(card => (
+                  <div
+                    key={card.id}
+                    className="flex items-center justify-between rounded border border-slate-200 px-3 py-2 text-xs"
+                  >
+                    <div>
+                      <p className="font-medium text-slate-700">UID {card.uid}</p>
+                      <p className="text-slate-500">
+                        {new Date(card.createdAt).toLocaleDateString('es-AR')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRfid(card.id, !card.active)}
+                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                          card.active ? 'bg-slate-900' : 'bg-slate-300'
+                        }`}
+                        aria-label="Cambiar estado de RFID"
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                            card.active ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                      {!card.active && (
+                        <button
+                          type="button"
+                          onClick={() => setRfidDeleteCard(card)}
+                          className="text-[10px] text-red-600 hover:text-red-700 cursor-pointer"
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </section>
 
         <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">

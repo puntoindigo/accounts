@@ -68,12 +68,6 @@
   tabs.style.justifyContent = 'center';
   tabs.style.transition = 'all 180ms ease';
 
-  const content = document.createElement('div');
-  content.style.border = '1px solid #e2e8f0';
-  content.style.borderRadius = '12px';
-  content.style.padding = '10px';
-  content.style.background = '#f8fafc';
-
   const status = document.createElement('div');
   status.style.marginTop = '10px';
   status.style.fontSize = '12px';
@@ -137,86 +131,6 @@
   };
 
   let activeMethod = 'google';
-  let hasSelected = false;
-
-  const updateTabsStyle = () => {
-    tabs.style.justifyContent = hasSelected ? 'flex-end' : 'center';
-    tabs.style.gap = hasSelected ? '6px' : '14px';
-    Array.from(tabs.children).forEach(child => {
-      child.style.padding = hasSelected ? '4px 8px' : '8px 14px';
-      child.style.fontSize = hasSelected ? '11px' : '13px';
-      child.style.transform = hasSelected ? 'scale(0.92)' : 'scale(1)';
-      child.style.transition = 'all 180ms ease';
-      child.querySelectorAll('svg').forEach(svg => {
-        svg.setAttribute('width', hasSelected ? '14' : '20');
-        svg.setAttribute('height', hasSelected ? '14' : '20');
-      });
-    });
-  };
-
-  const renderContent = () => {
-    const method = methods.find(item => item.id === activeMethod);
-    if (!method) {
-      return;
-    }
-    content.innerHTML = '';
-
-    const action = document.createElement('button');
-    action.type = 'button';
-    action.style.width = '100%';
-    action.style.padding = '12px';
-    action.style.borderRadius = '12px';
-    action.style.border = '1px solid #e2e8f0';
-    action.style.background = '#ffffff';
-    action.style.cursor = 'pointer';
-    action.style.display = 'flex';
-    action.style.flexDirection = 'column';
-    action.style.alignItems = 'center';
-    action.style.gap = '6px';
-    action.style.transition = 'all 160ms ease';
-    action.addEventListener('mouseenter', () => {
-      action.style.borderColor = '#cbd5f5';
-      action.style.boxShadow = '0 6px 18px rgba(15, 23, 42, 0.08)';
-    });
-    action.addEventListener('mouseleave', () => {
-      action.style.borderColor = '#e2e8f0';
-      action.style.boxShadow = 'none';
-    });
-    action.addEventListener('click', () => openLogin(method.id));
-
-    const iconWrapper = document.createElement('div');
-    iconWrapper.innerHTML = method.icon;
-    iconWrapper.style.display = 'flex';
-    iconWrapper.style.justifyContent = 'center';
-    iconWrapper.style.alignItems = 'center';
-    iconWrapper.style.width = '58px';
-    iconWrapper.style.height = '58px';
-    iconWrapper.style.borderRadius = '18px';
-    iconWrapper.style.background = '#f8fafc';
-    iconWrapper.style.border = '1px solid #e2e8f0';
-    iconWrapper.querySelectorAll('svg').forEach(svg => {
-      svg.setAttribute('width', '30');
-      svg.setAttribute('height', '30');
-    });
-
-    const label = document.createElement('div');
-    label.textContent = method.label;
-    label.style.fontWeight = '600';
-    label.style.fontSize = '13px';
-    label.style.color = '#0f1419';
-    label.style.textAlign = 'center';
-
-    const desc = document.createElement('div');
-    desc.textContent = method.description;
-    desc.style.fontSize = '12px';
-    desc.style.color = '#64748b';
-    desc.style.textAlign = 'center';
-
-    action.appendChild(iconWrapper);
-    action.appendChild(label);
-    action.appendChild(desc);
-    content.appendChild(action);
-  };
 
   methods.forEach(method => {
     const tab = document.createElement('button');
@@ -224,17 +138,16 @@
     tab.style.display = 'flex';
     tab.style.alignItems = 'center';
     tab.style.gap = '6px';
-    tab.style.padding = '4px 8px';
+    tab.style.padding = '8px 12px';
     tab.style.borderRadius = '999px';
     tab.style.border = '1px solid #e2e8f0';
     tab.style.background = 'white';
-    tab.style.fontSize = '11px';
+    tab.style.fontSize = '12px';
     tab.style.cursor = 'pointer';
     tab.style.color = '#0f1419';
     tab.innerHTML = `${method.icon}<span>${method.label}</span>`;
     tab.addEventListener('click', () => {
       activeMethod = method.id;
-      hasSelected = true;
       Array.from(tabs.children).forEach(child => {
         child.style.background = 'white';
         child.style.borderColor = '#e2e8f0';
@@ -243,8 +156,7 @@
       tab.style.background = '#0f172a';
       tab.style.borderColor = '#0f172a';
       tab.style.color = '#fff';
-      updateTabsStyle();
-      renderContent();
+      openLogin(method.id);
     });
     tabs.appendChild(tab);
   });
@@ -254,8 +166,6 @@
     tabs.children[0].style.borderColor = '#0f172a';
     tabs.children[0].style.color = '#fff';
   }
-  updateTabsStyle();
-  renderContent();
 
   const sendAck = (event, receivedType) => {
     if (event.source && typeof event.source.postMessage === 'function') {
@@ -296,7 +206,6 @@
   card.appendChild(subtitle);
   card.appendChild(accountsLinkRow);
   card.appendChild(tabs);
-  card.appendChild(content);
   card.appendChild(status);
   container.appendChild(card);
 })();
