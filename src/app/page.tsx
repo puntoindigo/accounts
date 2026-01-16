@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
+import Link from 'next/link';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
 import FaceRegistrationPicker from '@/components/biometric/FaceRegistrationPicker';
 import { useSearchParams } from 'next/navigation';
@@ -155,6 +156,7 @@ export default function Home() {
   const [showPersons, setShowPersons] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [showSessionActions, setShowSessionActions] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showRegisterCapture, setShowRegisterCapture] = useState(true);
   const [personsVisibleCount, setPersonsVisibleCount] = useState(PERSONS_PAGE_SIZE);
   const [activityVisibleCount, setActivityVisibleCount] = useState(ACTIVITY_PAGE_SIZE);
@@ -168,6 +170,7 @@ export default function Home() {
     () => persons.find(person => person.email.toLowerCase() === currentUserEmail) || null,
     [persons, currentUserEmail]
   );
+  const isAdmin = Boolean((session as any)?.isAdmin);
 
   const loadPersons = useCallback(async () => {
     setLoading(true);
@@ -394,29 +397,29 @@ export default function Home() {
               Este servicio centraliza el registro y verificación de identidad facial.
             </p>
           </div>
-          <div className="flex flex-col items-center gap-2">
+          <div className="relative flex flex-col items-center gap-2">
             <button
               type="button"
               onClick={() => setShowSessionActions(prev => !prev)}
-              className="flex flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm hover:bg-slate-50 transition"
+              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm hover:bg-slate-50 transition"
             >
               {currentPerson?.faceImageUrl ? (
                 <img
                   src={currentPerson.faceImageUrl}
                   alt={session?.user?.name || 'Perfil'}
-                  className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                  className="w-10 h-10 rounded-full object-cover border border-slate-200"
                 />
               ) : session?.user?.image ? (
                 <img
                   src={session.user.image}
                   alt={session.user.name || 'Perfil'}
-                  className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                  className="w-10 h-10 rounded-full object-cover border border-slate-200"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
                   <svg
-                    width="26"
-                    height="26"
+                    width="22"
+                    height="22"
                     viewBox="0 0 24 24"
                     aria-hidden="true"
                     fill="#94a3b8"
@@ -426,26 +429,88 @@ export default function Home() {
                   </svg>
                 </div>
               )}
-              <div className="text-center">
+              <div className="text-left">
                 <p className="text-xs font-medium text-slate-700">
                   {session?.user?.name || session?.user?.email || 'Usuario'}
                 </p>
-                {(session as any)?.isAdmin && (
+                {isAdmin && (
                   <p className="text-[10px] text-slate-500">Admin</p>
                 )}
               </div>
+              <span className="text-slate-400 text-xs">▾</span>
             </button>
+
             {showSessionActions && (
-              <button
-                type="button"
-                onClick={() => signOut()}
-                className="rounded border border-slate-200 px-3 py-1 text-xs bg-white hover:bg-slate-50 active:scale-[0.98] transition"
-              >
-                Cerrar sesión
-              </button>
+              <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-slate-200 bg-slate-700 text-white shadow-xl overflow-hidden">
+                <button
+                  type="button"
+                  className="w-full px-4 py-3 text-left text-sm hover:bg-slate-600"
+                  onClick={() => setShowSessionActions(false)}
+                >
+                  Configuración
+                </button>
+                {isAdmin && (
+                  <Link
+                    href="/documentacion"
+                    className="block w-full px-4 py-3 text-left text-sm hover:bg-slate-600"
+                    onClick={() => setShowSessionActions(false)}
+                  >
+                    Documentación
+                  </Link>
+                )}
+                <div className="border-t border-slate-600" />
+                <button
+                  type="button"
+                  className="w-full px-4 py-3 text-left text-sm hover:bg-slate-600 flex items-center justify-between"
+                  onClick={() => {
+                    setShowSessionActions(false);
+                    setShowLogoutConfirm(true);
+                  }}
+                >
+                  <span>Salir</span>
+                  <span className="text-xs text-slate-300">(S)</span>
+                </button>
+              </div>
             )}
           </div>
         </header>
+
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Confirmar salida</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="h-8 w-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
+                  aria-label="Cerrar modal de salida"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-sm text-slate-600">
+                ¿Querés cerrar la sesión en Accounts?
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="rounded border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => signOut()}
+                  className="rounded bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
           <div className="flex items-center justify-between">
