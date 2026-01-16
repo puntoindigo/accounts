@@ -6,10 +6,10 @@ export const runtime = 'nodejs';
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const personId = params.id;
+    const { id: personId } = await params;
     if (!personId) {
       return NextResponse.json({ error: 'personId requerido' }, { status: 400 });
     }
