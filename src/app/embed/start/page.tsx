@@ -29,23 +29,28 @@ function EmbedStartContent() {
   const [notice, setNotice] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [lastFailedFaceDescriptor, setLastFailedFaceDescriptor] = useState<number[] | null>(null);
+  const [loginInitiated, setLoginInitiated] = useState(false);
+  const [needsFreshLogin, setNeedsFreshLogin] = useState(true);
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && needsFreshLogin && !loginInitiated) {
       setClearingSession(true);
       setNotice('Reiniciando sesión para validar tu identidad...');
       signOut({ redirect: false }).finally(() => {
         setClearingSession(false);
         setNotice(null);
+        setNeedsFreshLogin(false);
       });
     }
-  }, [origin, status]);
+  }, [needsFreshLogin, loginInitiated, status]);
 
   const handleFaceLogin = async (descriptor: number[]) => {
     if (lastFailedFaceDescriptor && isSameFace(descriptor, lastFailedFaceDescriptor)) {
       return;
     }
     setAuthMessage(null);
+    setLoginInitiated(true);
+    setNeedsFreshLogin(false);
     const result = await signIn('face', {
       redirect: false,
       descriptor: JSON.stringify(descriptor)
@@ -79,9 +84,13 @@ function EmbedStartContent() {
           className="w-full rounded-lg border border-slate-200 bg-white text-slate-700 py-2 text-sm font-medium shadow-sm hover:bg-slate-50 flex items-center justify-center gap-2"
           disabled={clearingSession}
           onClick={() =>
-            signIn('google', {
-              callbackUrl: `/embed/callback?origin=${encodeURIComponent(origin)}`
-            })
+            (() => {
+              setLoginInitiated(true);
+              setNeedsFreshLogin(false);
+              signIn('google', {
+                callbackUrl: `/embed/callback?origin=${encodeURIComponent(origin)}`
+              });
+            })()
           }
         >
           <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -127,6 +136,15 @@ function EmbedStartContent() {
         {authMessage && (
           <p className="text-xs text-red-600 text-center">{authMessage}</p>
         )}
+
+        <div className="text-center">
+          <a
+            href="/"
+            className="text-xs text-slate-500 hover:text-slate-700 underline underline-offset-4"
+          >
+            Ir a Accounts
+          </a>
+        </div>
       </div>
     </div>
   );
