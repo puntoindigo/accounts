@@ -369,6 +369,12 @@ export default function Home() {
   }, [selectedPersonId, showActivity]);
 
   useEffect(() => {
+    if (showCreatePerson) {
+      setShowPersons(true);
+    }
+  }, [showCreatePerson]);
+
+  useEffect(() => {
     setPersonsVisibleCount(prev => Math.min(Math.max(prev, PERSONS_PAGE_SIZE), persons.length || PERSONS_PAGE_SIZE));
   }, [persons.length]);
 
@@ -397,6 +403,8 @@ export default function Home() {
       }
 
       setFormData({ gmailUser: '', nombre: '', empresa: '' });
+      setShowCreatePerson(false);
+      setShowPersons(true);
       await loadPersons();
     } catch (error: any) {
       setRegisterMessage(error?.message || 'Error al crear la persona.');
@@ -1084,8 +1092,8 @@ export default function Home() {
             )}
           </section>
         ) : (
-          <section className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2 opacity-70">
-            <h2 className="text-lg font-semibold">Identidad facial</h2>
+          <section className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
+            <h2 className="text-lg font-semibold text-slate-900">Identidad facial</h2>
             <p className="text-sm text-slate-500">
               Selecciona una persona para habilitar el módulo.
             </p>
@@ -1102,86 +1110,85 @@ export default function Home() {
             )}
           </div>
 
-          {!selectedPerson && (
+          {!selectedPerson ? (
             <p className="text-sm text-slate-500">
               Selecciona una persona para vincular tarjetas RFID.
             </p>
-          )}
-
-          <div className="space-y-3">
-            <div className="flex flex-col md:flex-row gap-2">
-              <input
-                value={rfidUid}
-                onChange={(event) => setRfidUid(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    handleAssociateRfid();
-                  }
-                }}
-                className="flex-1 rounded border border-slate-200 px-3 py-2 text-sm"
-                placeholder="UID de tarjeta RFID"
-                disabled={!selectedPerson}
-              />
-              <button
-                type="button"
-                onClick={handleAssociateRfid}
-                disabled={rfidLoading || !selectedPerson}
-                className="rounded bg-slate-900 text-white px-4 py-2 text-sm disabled:opacity-60"
-              >
-                Asociar RFID
-              </button>
-            </div>
-            {rfidMessage && (
-              <p className="text-xs text-slate-600">{rfidMessage}</p>
-            )}
-            <div className="space-y-2">
-              {rfidLoading ? (
-                <p className="text-sm text-slate-500">Cargando tarjetas...</p>
-              ) : rfidCards.length === 0 ? (
-                <p className="text-sm text-slate-500">Sin tarjetas vinculadas.</p>
-              ) : (
-                rfidCards.map(card => (
-                  <div
-                    key={card.id}
-                    className="flex items-center justify-between rounded border border-slate-200 px-3 py-2 text-xs"
-                  >
-                    <div>
-                      <p className="font-medium text-slate-700">UID {card.uid}</p>
-                      <p className="text-slate-500">
-                        {new Date(card.createdAt).toLocaleDateString('es-AR')}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleRfid(card.id, !card.active)}
-                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
-                          card.active ? 'bg-slate-900' : 'bg-slate-300'
-                        }`}
-                        aria-label="Cambiar estado de RFID"
-                      >
-                        <span
-                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-                            card.active ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                      {!card.active && (
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-col md:flex-row gap-2">
+                <input
+                  value={rfidUid}
+                  onChange={(event) => setRfidUid(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      handleAssociateRfid();
+                    }
+                  }}
+                  className="flex-1 rounded border border-slate-200 px-3 py-2 text-sm"
+                  placeholder="UID de tarjeta RFID"
+                />
+                <button
+                  type="button"
+                  onClick={handleAssociateRfid}
+                  disabled={rfidLoading}
+                  className="rounded bg-slate-900 text-white px-4 py-2 text-sm disabled:opacity-60"
+                >
+                  Asociar RFID
+                </button>
+              </div>
+              {rfidMessage && (
+                <p className="text-xs text-slate-600">{rfidMessage}</p>
+              )}
+              <div className="space-y-2">
+                {rfidLoading ? (
+                  <p className="text-sm text-slate-500">Cargando tarjetas...</p>
+                ) : rfidCards.length === 0 ? (
+                  <p className="text-sm text-slate-500">Sin tarjetas vinculadas.</p>
+                ) : (
+                  rfidCards.map(card => (
+                    <div
+                      key={card.id}
+                      className="flex items-center justify-between rounded border border-slate-200 px-3 py-2 text-xs"
+                    >
+                      <div>
+                        <p className="font-medium text-slate-700">UID {card.uid}</p>
+                        <p className="text-slate-500">
+                          {new Date(card.createdAt).toLocaleDateString('es-AR')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
                         <button
                           type="button"
-                          onClick={() => setRfidDeleteCard(card)}
-                          className="text-[10px] text-red-600 hover:text-red-700 cursor-pointer"
+                          onClick={() => handleToggleRfid(card.id, !card.active)}
+                          className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                            card.active ? 'bg-slate-900' : 'bg-slate-300'
+                          }`}
+                          aria-label="Cambiar estado de RFID"
                         >
-                          Eliminar
+                          <span
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                              card.active ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
                         </button>
-                      )}
+                        {!card.active && (
+                          <button
+                            type="button"
+                            onClick={() => setRfidDeleteCard(card)}
+                            className="text-[10px] text-red-600 hover:text-red-700 cursor-pointer"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
