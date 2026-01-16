@@ -25,6 +25,7 @@ function EmbedStartContent() {
     () => searchParams.get('origin') || window.location.origin,
     [searchParams]
   );
+  const selectedMethod = useMemo(() => searchParams.get('method') || 'google', [searchParams]);
   const [clearingSession, setClearingSession] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
@@ -124,7 +125,7 @@ function EmbedStartContent() {
           <h2 className="text-sm font-semibold text-slate-700">Reconocimiento facial</h2>
           <FaceRecognitionAutoCapture
             onDescriptorCaptured={handleFaceLogin}
-            defaultExpanded={false}
+            defaultExpanded={selectedMethod === 'face'}
             title="Login biométrico"
             description="Captura tu rostro para iniciar sesión."
             actionLabel="Iniciar sesión"

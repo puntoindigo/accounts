@@ -222,6 +222,48 @@ export default async function DocumentacionPage() {
             </li>
           </ol>
         </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold">Borrador etapa: Registro y vínculo de personas</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Esquema base para habilitar registro de personas sin cuenta y su vínculo con clientes
+            en Remitero.
+          </p>
+          <ol className="mt-4 space-y-3 text-sm text-slate-700 list-decimal pl-5">
+            <li>
+              <span className="font-semibold">Onboarding guiado.</span> Paso a paso: datos mínimos,
+              validación de email y aceptación de términos.
+            </li>
+            <li>
+              <span className="font-semibold">Registro facial.</span> Captura inicial, verificación
+              de calidad y guardado del descriptor biométrico.
+            </li>
+            <li>
+              <span className="font-semibold">Selección de módulos.</span> Activar accesos:
+              empleados, recibos, descuentos, nueva empresa en Remitero, remitos y clientes.
+            </li>
+            <li>
+              <span className="font-semibold">Identificador único.</span> Generación del
+              `accountsPersonId` como llave universal de identidad.
+            </li>
+            <li>
+              <span className="font-semibold">Vinculación Remitero.</span> API para asociar
+              `accountsPersonId` con `clienteId` o `empresaId` en Remitero.
+            </li>
+            <li>
+              <span className="font-semibold">Validación de vínculo.</span> Endpoint de consulta:
+              `GET /identity/link?accountsPersonId=...` devuelve asociaciones vigentes.
+            </li>
+            <li>
+              <span className="font-semibold">Estados y auditoría.</span> Estados (pendiente,
+              activo, revocado) + registro de cambios y responsable.
+            </li>
+            <li>
+              <span className="font-semibold">Entrega embebible.</span> Widget de registro
+              integrable similar al login, con callback de éxito y error.
+            </li>
+          </ol>
+        </section>
       </div>
     </div>
   );
