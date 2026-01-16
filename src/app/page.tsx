@@ -43,6 +43,14 @@ interface LoginEvent {
   createdAt: string;
 }
 
+interface RfidCard {
+  id: string;
+  personId: string;
+  uid: string;
+  active: boolean;
+  createdAt: string;
+}
+
 const faceDistance = (a: number[], b: number[]) => {
   let sum = 0;
   const len = Math.min(a.length, b.length);
@@ -171,6 +179,10 @@ export default function Home() {
   const [showSessionActions, setShowSessionActions] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showRegisterCapture, setShowRegisterCapture] = useState(true);
+  const [rfidCards, setRfidCards] = useState<RfidCard[]>([]);
+  const [rfidUid, setRfidUid] = useState('');
+  const [rfidMessage, setRfidMessage] = useState<string | null>(null);
+  const [rfidLoading, setRfidLoading] = useState(false);
   const [personsVisibleCount, setPersonsVisibleCount] = useState(PERSONS_PAGE_SIZE);
   const [activityVisibleCount, setActivityVisibleCount] = useState(ACTIVITY_PAGE_SIZE);
 
@@ -374,6 +386,59 @@ export default function Home() {
       return;
     }
     setPersons(prev => prev.map(person => (person.id === id ? data.person : person)));
+  };
+
+  const loadRfidCards = useCallback(async (personId: string) => {
+    setRfidLoading(true);
+    try {
+      const response = await fetch(`/api/rfid/person/${personId}`, { cache: 'no-store' });
+      const data = await response.json();
+      setRfidCards(Array.isArray(data.cards) ? data.cards : []);
+    } catch {
+      setRfidCards([]);
+    } finally {
+      setRfidLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedPersonId) {
+      loadRfidCards(selectedPersonId);
+    } else {
+      setRfidCards([]);
+    }
+  }, [loadRfidCards, selectedPersonId]);
+
+  const handleAssociateRfid = async () => {
+    if (!selectedPerson) {
+      setRfidMessage('Selecciona una persona antes de asociar RFID.');
+      return;
+    }
+    const normalized = rfidUid.trim().replace(/\s+/g, '');
+    if (!normalized) {
+      setRfidMessage('Ingresá un UID válido.');
+      return;
+    }
+    setRfidLoading(true);
+    setRfidMessage(null);
+    try {
+      const response = await fetch('/api/rfid/associate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personId: selectedPerson.id, uid: normalized })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setRfidMessage(data?.error || 'No se pudo asociar la tarjeta.');
+        return;
+      }
+      setRfidUid('');
+      await loadRfidCards(selectedPerson.id);
+    } catch {
+      setRfidMessage('No se pudo asociar la tarjeta.');
+    } finally {
+      setRfidLoading(false);
+    }
   };
 
   if (status === 'loading') {
@@ -819,6 +884,71 @@ export default function Home() {
             </p>
           </section>
         )}
+
+        <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">RFID</h2>
+            {selectedPerson && (
+              <span className="text-xs text-slate-500">
+                {rfidCards.length} tarjetas
+              </span>
+            )}
+          </div>
+
+          {!selectedPerson && (
+            <p className="text-sm text-slate-500">
+              Selecciona una persona para vincular tarjetas RFID.
+            </p>
+          )}
+
+          {selectedPerson && (
+            <div className="space-y-3">
+              <div className="flex flex-col md:flex-row gap-2">
+                <input
+                  value={rfidUid}
+                  onChange={(event) => setRfidUid(event.target.value)}
+                  className="flex-1 rounded border border-slate-200 px-3 py-2 text-sm"
+                  placeholder="UID de tarjeta RFID"
+                />
+                <button
+                  type="button"
+                  onClick={handleAssociateRfid}
+                  disabled={rfidLoading}
+                  className="rounded bg-slate-900 text-white px-4 py-2 text-sm disabled:opacity-60"
+                >
+                  Asociar RFID
+                </button>
+              </div>
+              {rfidMessage && (
+                <p className="text-xs text-slate-600">{rfidMessage}</p>
+              )}
+              <div className="space-y-2">
+                {rfidLoading ? (
+                  <p className="text-sm text-slate-500">Cargando tarjetas...</p>
+                ) : rfidCards.length === 0 ? (
+                  <p className="text-sm text-slate-500">Sin tarjetas vinculadas.</p>
+                ) : (
+                  rfidCards.map(card => (
+                    <div
+                      key={card.id}
+                      className="flex items-center justify-between rounded border border-slate-200 px-3 py-2 text-xs"
+                    >
+                      <div>
+                        <p className="font-medium text-slate-700">UID {card.uid}</p>
+                        <p className="text-slate-500">
+                          {new Date(card.createdAt).toLocaleDateString('es-AR')}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-[10px] ${card.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
+                        {card.active ? 'Activa' : 'Inactiva'}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </section>
 
         <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">

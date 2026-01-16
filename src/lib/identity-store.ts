@@ -30,6 +30,14 @@ export interface ActivityEvent {
   createdAt: string;
 }
 
+export interface RfidCard {
+  id: string;
+  personId: string;
+  uid: string;
+  active: boolean;
+  createdAt: string;
+}
+
 const ensureSupabase = () => {
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Faltan SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY');
@@ -60,6 +68,14 @@ const mapActivity = (row: any): ActivityEvent => ({
   city: row.city,
   country: row.country,
   userAgent: row.user_agent,
+  createdAt: row.created_at
+});
+
+const mapRfidCard = (row: any): RfidCard => ({
+  id: row.id,
+  personId: row.person_id,
+  uid: row.uid,
+  active: row.active,
   createdAt: row.created_at
 });
 
@@ -226,4 +242,59 @@ export async function recordActivityEvent(event: Omit<ActivityEvent, 'id' | 'cre
   } catch (error) {
     debugError('Error guardando actividad:', error);
   }
+}
+
+export async function listRfidCards(personId: string): Promise<RfidCard[]> {
+  ensureSupabase();
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from('accounts_rfid_cards')
+    .select('*')
+    .eq('person_id', personId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapRfidCard);
+}
+
+export async function getRfidCardByUid(uid: string): Promise<RfidCard | null> {
+  ensureSupabase();
+  const normalizedUid = uid.trim().replace(/\s+/g, '');
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from('accounts_rfid_cards')
+    .select('*')
+    .eq('uid', normalizedUid)
+    .eq('active', true)
+    .single();
+  if (error) return null;
+  return mapRfidCard(data);
+}
+
+export async function createRfidCard(input: { personId: string; uid: string }): Promise<RfidCard> {
+  ensureSupabase();
+  const payload = {
+    person_id: input.personId,
+    uid: input.uid.trim().replace(/\s+/g, '')
+  };
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from('accounts_rfid_cards')
+    .insert(payload)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return mapRfidCard(data);
+}
+
+export async function deactivateRfidCard(cardId: string): Promise<RfidCard | null> {
+  ensureSupabase();
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from('accounts_rfid_cards')
+    .update({ active: false })
+    .eq('id', cardId)
+    .select('*')
+    .single();
+  if (error) return null;
+  return mapRfidCard(data);
 }

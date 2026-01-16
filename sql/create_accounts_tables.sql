@@ -32,9 +32,18 @@ create table if not exists public.accounts_activity (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.accounts_rfid_cards (
+  id uuid primary key default gen_random_uuid(),
+  person_id uuid not null references public.accounts_persons(id) on delete cascade,
+  uid text not null unique,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists accounts_persons_email_idx on public.accounts_persons (email);
 create index if not exists accounts_activity_status_idx on public.accounts_activity (status);
 create index if not exists accounts_activity_created_at_idx on public.accounts_activity (created_at desc);
+create index if not exists accounts_rfid_person_idx on public.accounts_rfid_cards (person_id);
 
 create or replace function public.accounts_set_updated_at()
 returns trigger
