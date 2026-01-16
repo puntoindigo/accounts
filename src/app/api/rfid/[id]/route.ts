@@ -6,10 +6,10 @@ export const runtime = 'nodejs';
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cardId = params.id;
+    const { id: cardId } = await params;
     if (!cardId) {
       return NextResponse.json({ error: 'cardId requerido' }, { status: 400 });
     }
