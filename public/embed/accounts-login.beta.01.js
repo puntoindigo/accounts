@@ -20,7 +20,7 @@
   const card = document.createElement('div');
   card.style.border = '1px solid #e2e8f0';
   card.style.borderRadius = '16px';
-  card.style.padding = '14px';
+  card.style.padding = '12px';
   card.style.background = '#fff';
   card.style.boxShadow = '0 8px 24px rgba(15, 23, 42, 0.08)';
   card.style.fontFamily = 'system-ui, -apple-system, Segoe UI, sans-serif';
@@ -29,7 +29,7 @@
   header.style.display = 'flex';
   header.style.alignItems = 'center';
   header.style.justifyContent = 'space-between';
-  header.style.marginBottom = '6px';
+  header.style.marginBottom = '4px';
 
   const title = document.createElement('div');
   title.textContent = 'Acceso con Accounts';
@@ -53,19 +53,20 @@
   subtitle.textContent = 'Elegí un método para validar identidad.';
   subtitle.style.fontSize = '12px';
   subtitle.style.color = '#64748b';
-  subtitle.style.marginBottom = '6px';
+  subtitle.style.marginBottom = '4px';
 
   const accountsLinkRow = document.createElement('div');
   accountsLinkRow.style.display = 'flex';
   accountsLinkRow.style.justifyContent = 'flex-end';
-  accountsLinkRow.style.marginBottom = '8px';
+  accountsLinkRow.style.marginBottom = '6px';
   accountsLinkRow.appendChild(accountsLink);
 
   const tabs = document.createElement('div');
   tabs.style.display = 'flex';
-  tabs.style.gap = '6px';
+  tabs.style.gap = '12px';
   tabs.style.marginBottom = '10px';
-  tabs.style.justifyContent = 'flex-end';
+  tabs.style.justifyContent = 'center';
+  tabs.style.transition = 'all 180ms ease';
 
   const content = document.createElement('div');
   content.style.border = '1px solid #e2e8f0';
@@ -89,7 +90,7 @@
       id: 'face',
       label: 'FR',
       description: 'Validación con reconocimiento facial.',
-      icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="#0f1419"><path d="M5 7a2 2 0 0 1 2-2h2V3H7a4 4 0 0 0-4 4v2h2V7zm12-4h-2v2h2a2 2 0 0 1 2 2v2h2V7a4 4 0 0 0-4-4zm2 14a2 2 0 0 1-2 2h-2v2h2a4 4 0 0 0 4-4v-2h-2v2zM5 17v-2H3v2a4 4 0 0 0 4 4h2v-2H7a2 2 0 0 1-2-2zm3-6a4 4 0 1 0 8 0 4 4 0 0 0-8 0zm2 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0z"/></svg>'
+      icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M5 7a2 2 0 0 1 2-2h2V3H7a4 4 0 0 0-4 4v2h2V7zm12-4h-2v2h2a2 2 0 0 1 2 2v2h2V7a4 4 0 0 0-4-4zm2 14a2 2 0 0 1-2 2h-2v2h2a4 4 0 0 0 4-4v-2h-2v2zM5 17v-2H3v2a4 4 0 0 0 4 4h2v-2H7a2 2 0 0 1-2-2zm3-6a4 4 0 1 0 8 0 4 4 0 0 0-8 0zm2 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0z"/></svg>'
     }
   ];
 
@@ -130,6 +131,22 @@
   };
 
   let activeMethod = 'google';
+  let hasSelected = false;
+
+  const updateTabsStyle = () => {
+    tabs.style.justifyContent = hasSelected ? 'flex-end' : 'center';
+    tabs.style.gap = hasSelected ? '6px' : '14px';
+    Array.from(tabs.children).forEach(child => {
+      child.style.padding = hasSelected ? '4px 8px' : '8px 14px';
+      child.style.fontSize = hasSelected ? '11px' : '13px';
+      child.style.transform = hasSelected ? 'scale(0.92)' : 'scale(1)';
+      child.style.transition = 'all 180ms ease';
+      child.querySelectorAll('svg').forEach(svg => {
+        svg.setAttribute('width', hasSelected ? '14' : '20');
+        svg.setAttribute('height', hasSelected ? '14' : '20');
+      });
+    });
+  };
 
   const renderContent = () => {
     const method = methods.find(item => item.id === activeMethod);
@@ -138,20 +155,42 @@
     }
     content.innerHTML = '';
 
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.style.width = '100%';
+    action.style.padding = '12px';
+    action.style.borderRadius = '12px';
+    action.style.border = '1px solid #e2e8f0';
+    action.style.background = '#ffffff';
+    action.style.cursor = 'pointer';
+    action.style.display = 'flex';
+    action.style.flexDirection = 'column';
+    action.style.alignItems = 'center';
+    action.style.gap = '6px';
+    action.style.transition = 'all 160ms ease';
+    action.addEventListener('mouseenter', () => {
+      action.style.borderColor = '#cbd5f5';
+      action.style.boxShadow = '0 6px 18px rgba(15, 23, 42, 0.08)';
+    });
+    action.addEventListener('mouseleave', () => {
+      action.style.borderColor = '#e2e8f0';
+      action.style.boxShadow = 'none';
+    });
+    action.addEventListener('click', () => openLogin(method.id));
+
     const iconWrapper = document.createElement('div');
     iconWrapper.innerHTML = method.icon;
     iconWrapper.style.display = 'flex';
     iconWrapper.style.justifyContent = 'center';
     iconWrapper.style.alignItems = 'center';
-    iconWrapper.style.width = '54px';
-    iconWrapper.style.height = '54px';
+    iconWrapper.style.width = '58px';
+    iconWrapper.style.height = '58px';
     iconWrapper.style.borderRadius = '18px';
-    iconWrapper.style.background = '#ffffff';
+    iconWrapper.style.background = '#f8fafc';
     iconWrapper.style.border = '1px solid #e2e8f0';
-    iconWrapper.style.margin = '0 auto 10px auto';
     iconWrapper.querySelectorAll('svg').forEach(svg => {
-      svg.setAttribute('width', '28');
-      svg.setAttribute('height', '28');
+      svg.setAttribute('width', '30');
+      svg.setAttribute('height', '30');
     });
 
     const label = document.createElement('div');
@@ -160,31 +199,16 @@
     label.style.fontSize = '13px';
     label.style.color = '#0f1419';
     label.style.textAlign = 'center';
-    label.style.marginBottom = '6px';
 
     const desc = document.createElement('div');
     desc.textContent = method.description;
     desc.style.fontSize = '12px';
     desc.style.color = '#64748b';
-    desc.style.marginBottom = '10px';
     desc.style.textAlign = 'center';
 
-    const action = document.createElement('button');
-    action.type = 'button';
-    action.textContent = method.id === 'google' ? 'Validar con Google' : 'Validar con FR';
-    action.style.width = '100%';
-    action.style.padding = '9px 12px';
-    action.style.borderRadius = '10px';
-    action.style.border = '1px solid #cbd5f5';
-    action.style.background = '#0f172a';
-    action.style.color = '#fff';
-    action.style.fontSize = '13px';
-    action.style.cursor = 'pointer';
-    action.addEventListener('click', () => openLogin(method.id));
-
-    content.appendChild(iconWrapper);
-    content.appendChild(label);
-    content.appendChild(desc);
+    action.appendChild(iconWrapper);
+    action.appendChild(label);
+    action.appendChild(desc);
     content.appendChild(action);
   };
 
@@ -204,20 +228,16 @@
     tab.innerHTML = `${method.icon}<span>${method.label}</span>`;
     tab.addEventListener('click', () => {
       activeMethod = method.id;
+      hasSelected = true;
       Array.from(tabs.children).forEach(child => {
         child.style.background = 'white';
         child.style.borderColor = '#e2e8f0';
         child.style.color = '#0f1419';
-        child.querySelectorAll('path').forEach(path => {
-          path.setAttribute('fill', '#0f1419');
-        });
       });
       tab.style.background = '#0f172a';
       tab.style.borderColor = '#0f172a';
       tab.style.color = '#fff';
-      tab.querySelectorAll('path').forEach(path => {
-        path.setAttribute('fill', '#fff');
-      });
+      updateTabsStyle();
       renderContent();
     });
     tabs.appendChild(tab);
@@ -227,10 +247,8 @@
     tabs.children[0].style.background = '#0f172a';
     tabs.children[0].style.borderColor = '#0f172a';
     tabs.children[0].style.color = '#fff';
-    tabs.children[0].querySelectorAll('path').forEach(path => {
-      path.setAttribute('fill', '#fff');
-    });
   }
+  updateTabsStyle();
   renderContent();
 
   const sendAck = (event, receivedType) => {
