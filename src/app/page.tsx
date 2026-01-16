@@ -384,461 +384,617 @@ export default function Home() {
     );
   }
 
+  const navigationItems = [
+    { label: 'Dashboard', active: true },
+    { label: 'API Keys' },
+    { label: 'Usage' },
+    { label: 'Models' },
+    { label: 'Tokenizer' },
+    { label: 'Voice API' },
+    { label: 'Collections' },
+    { label: 'Grok Business' }
+  ];
+  const temporaryDemoUrl = 'https://accounts-demo-temp.vercel.app';
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
-        <header className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-semibold">Accounts — Identidad Biométrica</h1>
-            <p className="text-sm text-slate-600">
-              Este servicio centraliza el registro y verificación de identidad facial.
-            </p>
+    <div className="min-h-screen bg-slate-100 text-slate-900">
+      <div className="flex min-h-screen">
+        <aside className="hidden lg:flex w-64 flex-col border-r border-slate-200 bg-white px-4 py-6">
+          <div className="space-y-1 border-b border-slate-100 pb-4">
+            <p className="text-[11px] uppercase tracking-wide text-slate-400">Team</p>
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+              <span className="text-sm font-medium text-slate-700">Personal team</span>
+              <span className="text-xs text-slate-400">▾</span>
+            </div>
           </div>
-          <div className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowSessionActions(prev => !prev)}
-              className="flex flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm hover:bg-slate-50 transition"
-            >
-              {currentPerson?.faceImageUrl ? (
-                <img
-                  src={currentPerson.faceImageUrl}
-                  alt={session?.user?.name || 'Perfil'}
-                  className="w-12 h-12 rounded-full object-cover border border-slate-200"
-                />
-              ) : session?.user?.image ? (
-                <img
-                  src={session.user.image}
-                  alt={session.user.name || 'Perfil'}
-                  className="w-12 h-12 rounded-full object-cover border border-slate-200"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
-                  <svg
-                    width="26"
-                    height="26"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                    fill="#94a3b8"
-                  >
-                    <circle cx="12" cy="9" r="4" />
-                    <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
-                  </svg>
-                </div>
-              )}
-              <div className="text-center">
-                <p className="text-xs font-medium text-slate-700">
-                  {session?.user?.name || session?.user?.email || 'Usuario'}
-                </p>
-                {(session as any)?.isAdmin && (
-                  <p className="text-[10px] text-slate-500">Admin</p>
-                )}
-              </div>
+
+          <nav className="flex-1 space-y-1 pt-4">
+            {navigationItems.map(item => (
+              <button
+                key={item.label}
+                type="button"
+                className={`w-full text-left rounded-lg px-3 py-2 text-sm transition ${
+                  item.active
+                    ? 'bg-slate-100 text-slate-900 font-medium'
+                    : 'text-slate-500 hover:bg-slate-100'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
+
+          <div className="space-y-2 border-t border-slate-100 pt-4 text-sm">
+            <button type="button" className="w-full text-left text-slate-500 hover:text-slate-700">
+              Billing
             </button>
-            {showSessionActions && (
-              <button
-                type="button"
-                onClick={() => signOut()}
-                className="rounded border border-slate-200 px-3 py-1 text-xs bg-white hover:bg-slate-50 active:scale-[0.98] transition"
-              >
-                Cerrar sesión
-              </button>
-            )}
+            <button type="button" className="w-full text-left text-slate-500 hover:text-slate-700">
+              Users
+            </button>
+            <button type="button" className="w-full text-left text-slate-500 hover:text-slate-700">
+              Settings
+            </button>
           </div>
-        </header>
+        </aside>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Personas registradas</h2>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowCreatePerson(prev => !prev)}
-                className="rounded-full border border-slate-300 bg-white w-9 h-9 flex items-center justify-center text-lg font-semibold shadow-sm hover:bg-slate-50 active:translate-y-px transition"
-                aria-label="Crear persona"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPersons(prev => !prev)}
-                className="rounded-full border border-slate-300 bg-white w-9 h-9 flex items-center justify-center text-sm font-semibold shadow-sm hover:bg-slate-50 active:translate-y-px transition"
-                aria-label="Mostrar personas registradas"
-              >
-                {showPersons ? '▴' : '▾'}
-              </button>
-            </div>
-          </div>
-
-          {showCreatePerson && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
-              <form className="space-y-3" onSubmit={handleCreatePerson}>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Email Gmail</label>
-                  <div className="flex items-center rounded border border-slate-200 px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-slate-200 bg-white">
-                    <input
-                      value={formData.gmailUser}
-                      onChange={(event) => {
-                        const raw = event.target.value || '';
-                        const localPart = raw.replace(/\s+/g, '').replace(/@/g, '').trim();
-                        setFormData(prev => ({ ...prev, gmailUser: localPart }));
-                      }}
-                      className="flex-1 outline-none bg-transparent"
-                      type="text"
-                      placeholder="usuario"
-                    />
-                    <span className="text-slate-400">@gmail.com</span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Nombre</label>
-                  <input
-                    value={formData.nombre}
-                    onChange={(event) => setFormData(prev => ({ ...prev, nombre: event.target.value }))}
-                    className="w-full rounded border border-slate-200 px-3 py-2 text-sm bg-white"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Empresa</label>
-                  <input
-                    value={formData.empresa}
-                    onChange={(event) => setFormData(prev => ({ ...prev, empresa: event.target.value }))}
-                    className="w-full rounded border border-slate-200 px-3 py-2 text-sm bg-white"
-                  />
-                </div>
+        <div className="flex-1 flex flex-col">
+          <header className="sticky top-0 z-10 border-b border-slate-200 bg-white">
+            <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  type="submit"
-                  disabled={creating}
-                  className="w-full rounded bg-slate-900 text-white py-2 text-sm disabled:opacity-60"
+                  type="button"
+                  className="rounded-md border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700"
                 >
-                  {creating ? 'Creando...' : 'Crear persona'}
+                  API Console
                 </button>
-              </form>
+                <button
+                  type="button"
+                  className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-slate-500"
+                >
+                  Grok Business
+                </button>
+                <a
+                  href={temporaryDemoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 hover:text-slate-700"
+                >
+                  <span className="text-sm">🌐</span>
+                  {temporaryDemoUrl.replace('https://', '')}
+                </a>
+              </div>
+              <div className="flex flex-1 items-center justify-end gap-3">
+                <div className="hidden md:flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-slate-500">
+                  <span>🔎</span>
+                  <span>Search</span>
+                </div>
+                <button type="button" className="hidden md:inline-flex items-center gap-2 text-xs text-slate-500">
+                  ⌘K
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSessionActions(prev => !prev)}
+                  className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm"
+                >
+                  {currentPerson?.faceImageUrl ? (
+                    <img
+                      src={currentPerson.faceImageUrl}
+                      alt={session?.user?.name || 'Perfil'}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : session?.user?.image ? (
+                    <img
+                      src={session.user.image}
+                      alt={session.user.name || 'Perfil'}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200">
+                      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="#94a3b8">
+                        <circle cx="12" cy="9" r="4" />
+                        <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="text-left">
+                    <p className="text-xs font-medium text-slate-700">
+                      {session?.user?.name || session?.user?.email || 'Usuario'}
+                    </p>
+                    {(session as any)?.isAdmin && (
+                      <p className="text-[10px] text-slate-400">Admin</p>
+                    )}
+                  </div>
+                </button>
+              </div>
             </div>
-          )}
+            {showSessionActions && (
+              <div className="mx-auto max-w-6xl px-6 pb-4">
+                <button
+                  type="button"
+                  onClick={() => signOut()}
+                  className="rounded border border-slate-200 px-3 py-1 text-xs bg-white hover:bg-slate-50 active:scale-[0.98] transition"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </header>
 
-          {showPersons && (
-            <div className="space-y-3">
-              {loading ? (
-                <p className="text-sm text-slate-500">Cargando personas...</p>
-              ) : error ? (
-                <p className="text-sm text-red-600">{error}</p>
-              ) : persons.length === 0 ? (
-                <p className="text-sm text-slate-500">No hay personas registradas.</p>
-              ) : (
-                <div className="space-y-2">
-                  {persons.slice(0, personsVisibleCount).map(person => (
-                    <div
-                      key={person.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => {
-                        setSelectedPersonId(person.id);
-                        setRegisterMessage(null);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setSelectedPersonId(person.id);
-                          setRegisterMessage(null);
-                        }
-                      }}
-                      className={`w-full text-left rounded border px-3 py-3 text-sm cursor-pointer ${
-                        selectedPersonId === person.id
-                          ? 'border-slate-900 bg-slate-50'
-                          : 'border-slate-200'
-                      } ${person.active ? '' : 'bg-slate-50 opacity-70'}`}
-                    >
-                      <div className="flex flex-col gap-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-3">
-                            {person.faceImageUrl ? (
-                              <img
-                                src={person.faceImageUrl}
-                                alt={`Rostro de ${person.nombre}`}
-                                className="w-10 h-10 rounded-full object-cover border border-slate-200"
+          <main className="flex-1 px-6 py-8">
+            <div className="mx-auto max-w-6xl space-y-8">
+              <div className="flex flex-col gap-2">
+                <h1 className="text-3xl font-semibold">Let&apos;s get you up and running</h1>
+                <p className="text-sm text-slate-600">
+                  Este dashboard concentra todo lo que tenemos en Accounts hasta ahora, con foco en identidad biométrica.
+                </p>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                <div className="space-y-6">
+                  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold">Personas registradas</h2>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowCreatePerson(prev => !prev)}
+                          className="rounded-full border border-slate-300 bg-white w-9 h-9 flex items-center justify-center text-lg font-semibold shadow-sm hover:bg-slate-50 active:translate-y-px transition"
+                          aria-label="Crear persona"
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowPersons(prev => !prev)}
+                          className="rounded-full border border-slate-300 bg-white w-9 h-9 flex items-center justify-center text-sm font-semibold shadow-sm hover:bg-slate-50 active:translate-y-px transition"
+                          aria-label="Mostrar personas registradas"
+                        >
+                          {showPersons ? '▴' : '▾'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {showCreatePerson && (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                        <form className="space-y-3" onSubmit={handleCreatePerson}>
+                          <div className="space-y-1">
+                            <label className="text-sm font-medium">Email Gmail</label>
+                            <div className="flex items-center rounded border border-slate-200 px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-slate-200 bg-white">
+                              <input
+                                value={formData.gmailUser}
+                                onChange={(event) => {
+                                  const raw = event.target.value || '';
+                                  const localPart = raw.replace(/\s+/g, '').replace(/@/g, '').trim();
+                                  setFormData(prev => ({ ...prev, gmailUser: localPart }));
+                                }}
+                                className="flex-1 outline-none bg-transparent"
+                                type="text"
+                                placeholder="usuario"
                               />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                                <svg
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  aria-hidden="true"
-                                  fill="#94a3b8"
-                                >
-                                  <circle cx="12" cy="9" r="4" />
-                                  <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
-                                </svg>
-                              </div>
-                            )}
-                            <div>
-                              <div className="font-medium">{person.nombre}</div>
-                              <div className="text-xs text-slate-500">{person.empresa}</div>
-                              <div className="text-xs text-slate-500">{person.email}</div>
+                              <span className="text-slate-400">@gmail.com</span>
                             </div>
                           </div>
+                          <div className="space-y-1">
+                            <label className="text-sm font-medium">Nombre</label>
+                            <input
+                              value={formData.nombre}
+                              onChange={(event) => setFormData(prev => ({ ...prev, nombre: event.target.value }))}
+                              className="w-full rounded border border-slate-200 px-3 py-2 text-sm bg-white"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-sm font-medium">Empresa</label>
+                            <input
+                              value={formData.empresa}
+                              onChange={(event) => setFormData(prev => ({ ...prev, empresa: event.target.value }))}
+                              className="w-full rounded border border-slate-200 px-3 py-2 text-sm bg-white"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={creating}
+                            className="w-full rounded bg-slate-900 text-white py-2 text-sm disabled:opacity-60"
+                          >
+                            {creating ? 'Creando...' : 'Crear persona'}
+                          </button>
+                        </form>
+                      </div>
+                    )}
+
+                    {showPersons && (
+                      <div className="space-y-3">
+                        {loading ? (
+                          <p className="text-sm text-slate-500">Cargando personas...</p>
+                        ) : error ? (
+                          <p className="text-sm text-red-600">{error}</p>
+                        ) : persons.length === 0 ? (
+                          <p className="text-sm text-slate-500">No hay personas registradas.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {persons.slice(0, personsVisibleCount).map(person => (
+                              <div
+                                key={person.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => {
+                                  setSelectedPersonId(person.id);
+                                  setRegisterMessage(null);
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    setSelectedPersonId(person.id);
+                                    setRegisterMessage(null);
+                                  }
+                                }}
+                                className={`w-full text-left rounded-xl border px-3 py-3 text-sm cursor-pointer ${
+                                  selectedPersonId === person.id
+                                    ? 'border-slate-900 bg-slate-50'
+                                    : 'border-slate-200'
+                                } ${person.active ? '' : 'bg-slate-50 opacity-70'}`}
+                              >
+                                <div className="flex flex-col gap-3">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-3">
+                                      {person.faceImageUrl ? (
+                                        <img
+                                          src={person.faceImageUrl}
+                                          alt={`Rostro de ${person.nombre}`}
+                                          className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                                          <svg
+                                            width="24"
+                                            height="24"
+                                            viewBox="0 0 24 24"
+                                            aria-hidden="true"
+                                            fill="#94a3b8"
+                                          >
+                                            <circle cx="12" cy="9" r="4" />
+                                            <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+                                          </svg>
+                                        </div>
+                                      )}
+                                      <div>
+                                        <div className="font-medium">{person.nombre}</div>
+                                        <div className="text-xs text-slate-500">{person.empresa}</div>
+                                        <div className="text-xs text-slate-500">{person.email}</div>
+                                      </div>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleUpdatePerson(person.id, { active: !person.active });
+                                      }}
+                                      className={`inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full border ${
+                                        person.active
+                                          ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
+                                          : 'border-slate-300 bg-slate-200 text-slate-500'
+                                      }`}
+                                    >
+                                      <span className={`inline-block h-2.5 w-2.5 rounded-full ${person.active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                                      {person.active ? 'Acceso activo' : 'Acceso suspendido'}
+                                    </button>
+                                  </div>
+                                  {!person.faceDescriptor?.length && (
+                                    <div className="text-xs text-slate-500">Sin rostro registrado</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            {personsVisibleCount < persons.length && (
+                              <button
+                                type="button"
+                                onClick={() => setPersonsVisibleCount(prev => Math.min(prev + PERSONS_PAGE_SIZE, persons.length))}
+                                className="w-full rounded border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                              >
+                                Cargar más
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </section>
+
+                  {selectedPerson ? (
+                    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <h2 className="text-lg font-semibold">Identidad facial</h2>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-sm font-medium ${faceMode === 'verify' ? 'text-slate-900' : 'text-slate-400'}`}>
+                            Verificar
+                          </span>
                           <button
                             type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleUpdatePerson(person.id, { active: !person.active });
-                            }}
-                            className={`inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full border ${
-                              person.active
-                                ? 'border-emerald-300 bg-emerald-100 text-emerald-700'
-                                : 'border-slate-300 bg-slate-200 text-slate-500'
+                            onClick={() => setFaceMode(faceMode === 'verify' ? 'register' : 'verify')}
+                            className={`relative inline-flex h-10 w-20 items-center rounded-lg transition ${
+                              faceMode === 'register' ? 'bg-slate-900' : 'bg-slate-300'
                             }`}
+                            aria-label="Cambiar modo de identidad facial"
                           >
-                            <span className={`inline-block h-2.5 w-2.5 rounded-full ${person.active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                            {person.active ? 'Acceso activo' : 'Acceso suspendido'}
+                            <span
+                              className={`inline-block h-8 w-8 transform rounded-md bg-white shadow transition ${
+                                faceMode === 'register' ? 'translate-x-10' : 'translate-x-1'
+                              }`}
+                            />
                           </button>
-                        </div>
-                      {!person.faceDescriptor?.length && (
-                        <div className="text-xs text-slate-500">Sin rostro registrado</div>
-                      )}
-                      </div>
-                    </div>
-                  ))}
-                  {personsVisibleCount < persons.length && (
-                    <button
-                      type="button"
-                      onClick={() => setPersonsVisibleCount(prev => Math.min(prev + PERSONS_PAGE_SIZE, persons.length))}
-                      className="w-full rounded border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
-                    >
-                      Cargar más
-                    </button>
-                  )}
-                </div>
-              )}
-          </div>
-          )}
-        </section>
-
-        {selectedPerson ? (
-          <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold">Identidad facial</h2>
-              <div className="flex items-center gap-3">
-                <span className={`text-sm font-medium ${faceMode === 'verify' ? 'text-slate-900' : 'text-slate-400'}`}>
-                  Verificar
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setFaceMode(faceMode === 'verify' ? 'register' : 'verify')}
-                  className={`relative inline-flex h-10 w-20 items-center rounded-lg transition ${
-                    faceMode === 'register' ? 'bg-slate-900' : 'bg-slate-300'
-                  }`}
-                  aria-label="Cambiar modo de identidad facial"
-                >
-                  <span
-                    className={`inline-block h-8 w-8 transform rounded-md bg-white shadow transition ${
-                      faceMode === 'register' ? 'translate-x-10' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-                <span className={`text-sm font-medium ${faceMode === 'register' ? 'text-slate-900' : 'text-slate-400'}`}>
-                  Registrar
-                </span>
-              </div>
-            </div>
-
-            {faceMode === 'register' ? (
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => setShowRegisterCapture(true)}
-                  className="w-full text-left"
-                >
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm shadow-sm">
-                    <div className="flex items-center gap-3">
-                      {selectedPerson.faceImageUrl ? (
-                        <img
-                          src={selectedPerson.faceImageUrl}
-                          alt={`Rostro de ${selectedPerson.nombre}`}
-                          className="w-12 h-12 rounded-full object-cover border border-slate-200"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
-                          <svg
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                            fill="#94a3b8"
-                          >
-                            <circle cx="12" cy="9" r="4" />
-                            <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
-                          </svg>
-                        </div>
-                      )}
-                      <div>
-                        <p className="font-medium">{selectedPerson.nombre}</p>
-                        <p className="text-slate-500">{selectedPerson.email}</p>
-                        <p className="text-slate-500">{selectedPerson.empresa}</p>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-                {showRegisterCapture && (
-                  <FaceRegistrationPicker
-                    onRegister={handleRegisterFaceWithImage}
-                    onRemove={handleRemoveFace}
-                    hasSavedFace={!!selectedPerson.faceDescriptor}
-                  />
-                )}
-                {registerMessage && (
-                  <p className="text-sm text-slate-600">{registerMessage}</p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <FaceRecognitionAutoCapture
-                  onDescriptorCaptured={handleVerifyFace}
-                  defaultExpanded={false}
-                  title="Verificación facial"
-                  description="Captura un rostro y verifica si existe una persona coincidente."
-                  actionLabel="Verificar rostro"
-                  noticeLabel="Verificando identidad..."
-                  autoCaptureDisabled={!!verificationResult}
-                />
-                {verifyMessage && (
-                  <p className="text-sm text-slate-600">{verifyMessage}</p>
-                )}
-                {verificationResult && (
-                  <div className="relative rounded border border-emerald-200 bg-emerald-50 p-4 text-sm">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setVerificationResult(null);
-                        setVerifyMessage(null);
-                      }}
-                      className="absolute top-2 right-2 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 text-xs flex items-center justify-center"
-                      aria-label="Cerrar resultado de verificación"
-                    >
-                      ✕
-                    </button>
-                    <p className="font-medium">{verificationResult.nombre}</p>
-                    <p className="text-slate-600">
-                      {verificationResult.email} · {verificationResult.empresa}
-                    </p>
-                    <p className="text-slate-600">
-                      Confianza: {verificationResult.confidence}% (distancia {verificationResult.distance.toFixed(3)})
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-        ) : (
-          <section className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2 opacity-70">
-            <h2 className="text-lg font-semibold">Identidad facial</h2>
-            <p className="text-sm text-slate-500">
-              Selecciona una persona para habilitar el módulo.
-            </p>
-          </section>
-        )}
-
-        <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold">Histórico de actividad</h2>
-              <button
-                type="button"
-                onClick={() => setShowActivity(prev => !prev)}
-                className="rounded-full border border-slate-300 bg-white w-9 h-9 flex items-center justify-center text-sm font-semibold shadow-sm hover:bg-slate-50 active:translate-y-px transition"
-                aria-label="Mostrar histórico de actividad"
-              >
-                {showActivity ? '▴' : '▾'}
-              </button>
-            </div>
-          </div>
-          {showActivity && (
-            <>
-              <div className="flex items-center gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setActivityFilter('all')}
-                  className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'all' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
-                >
-                  Todos
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActivityFilter('success')}
-                  className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'success' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
-                >
-                  Exitosos
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActivityFilter('failed')}
-                  className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'failed' ? 'border-red-600 bg-red-600 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
-                >
-                  Fallidos
-                </button>
-                <button
-                  type="button"
-                  onClick={loadLoginEvents}
-                  className="rounded border border-slate-200 px-2 py-1 bg-white hover:bg-slate-50 active:scale-[0.98] transition"
-                >
-                  Actualizar
-                </button>
-              </div>
-              {loginLoading ? (
-                <p className="text-sm text-slate-500">Cargando actividad...</p>
-              ) : loginEvents.length === 0 ? (
-                <p className="text-sm text-slate-500">Sin registros todavía.</p>
-              ) : (
-                <div className="space-y-2">
-                  {loginEvents.slice(0, activityVisibleCount).map(event => (
-                    <div
-                      key={event.id}
-                      className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-slate-100 rounded px-3 py-2 text-sm"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs px-2 py-1 rounded ${event.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                            {event.status === 'success' ? 'Éxito' : 'Fallido'}
+                          <span className={`text-sm font-medium ${faceMode === 'register' ? 'text-slate-900' : 'text-slate-400'}`}>
+                            Registrar
                           </span>
-                          <span className="text-xs text-slate-500">{event.provider.toUpperCase()}</span>
-                          {event.reason && (
-                            <span className="text-xs text-slate-400">· {event.reason}</span>
+                        </div>
+                      </div>
+
+                      {faceMode === 'register' ? (
+                        <div className="space-y-3">
+                          <button
+                            type="button"
+                            onClick={() => setShowRegisterCapture(true)}
+                            className="w-full text-left"
+                          >
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm shadow-sm">
+                              <div className="flex items-center gap-3">
+                                {selectedPerson.faceImageUrl ? (
+                                  <img
+                                    src={selectedPerson.faceImageUrl}
+                                    alt={`Rostro de ${selectedPerson.nombre}`}
+                                    className="w-12 h-12 rounded-full object-cover border border-slate-200"
+                                  />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                                    <svg
+                                      width="24"
+                                      height="24"
+                                      viewBox="0 0 24 24"
+                                      aria-hidden="true"
+                                      fill="#94a3b8"
+                                    >
+                                      <circle cx="12" cy="9" r="4" />
+                                      <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
+                                    </svg>
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="font-medium">{selectedPerson.nombre}</p>
+                                  <p className="text-slate-500">{selectedPerson.email}</p>
+                                  <p className="text-slate-500">{selectedPerson.empresa}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                          {showRegisterCapture && (
+                            <FaceRegistrationPicker
+                              onRegister={handleRegisterFaceWithImage}
+                              onRemove={handleRemoveFace}
+                              hasSavedFace={!!selectedPerson.faceDescriptor}
+                            />
+                          )}
+                          {registerMessage && (
+                            <p className="text-sm text-slate-600">{registerMessage}</p>
                           )}
                         </div>
-                        <p className="text-sm text-slate-700">
-                          {event.email || 'Sin email'}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {event.ip || 'IP desconocida'} · {event.city || 'Ciudad desconocida'} {event.country ? `(${event.country})` : ''}
-                        </p>
-                      </div>
-                      <span className="text-xs text-slate-500">
-                        {new Date(event.createdAt).toLocaleString('es-AR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
-                    </div>
-                  ))}
-                  {activityVisibleCount < loginEvents.length && (
-                    <button
-                      type="button"
-                      onClick={() => setActivityVisibleCount(prev => Math.min(prev + ACTIVITY_PAGE_SIZE, loginEvents.length))}
-                      className="w-full rounded border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
-                    >
-                      Cargar más
-                    </button>
+                      ) : (
+                        <div className="space-y-3">
+                          <FaceRecognitionAutoCapture
+                            onDescriptorCaptured={handleVerifyFace}
+                            defaultExpanded={false}
+                            title="Verificación facial"
+                            description="Captura un rostro y verifica si existe una persona coincidente."
+                            actionLabel="Verificar rostro"
+                            noticeLabel="Verificando identidad..."
+                            autoCaptureDisabled={!!verificationResult}
+                          />
+                          {verifyMessage && (
+                            <p className="text-sm text-slate-600">{verifyMessage}</p>
+                          )}
+                          {verificationResult && (
+                            <div className="relative rounded border border-emerald-200 bg-emerald-50 p-4 text-sm">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVerificationResult(null);
+                                  setVerifyMessage(null);
+                                }}
+                                className="absolute top-2 right-2 h-6 w-6 rounded-full bg-emerald-100 text-emerald-700 text-xs flex items-center justify-center"
+                                aria-label="Cerrar resultado de verificación"
+                              >
+                                ✕
+                              </button>
+                              <p className="font-medium">{verificationResult.nombre}</p>
+                              <p className="text-slate-600">
+                                {verificationResult.email} · {verificationResult.empresa}
+                              </p>
+                              <p className="text-slate-600">
+                                Confianza: {verificationResult.confidence}% (distancia {verificationResult.distance.toFixed(3)})
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </section>
+                  ) : (
+                    <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-2 opacity-70">
+                      <h2 className="text-lg font-semibold">Identidad facial</h2>
+                      <p className="text-sm text-slate-500">
+                        Selecciona una persona para habilitar el módulo.
+                      </p>
+                    </section>
                   )}
-                </div>
-              )}
-            </>
-          )}
-        </section>
 
+                  <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-semibold">Histórico de actividad</h2>
+                        <button
+                          type="button"
+                          onClick={() => setShowActivity(prev => !prev)}
+                          className="rounded-full border border-slate-300 bg-white w-9 h-9 flex items-center justify-center text-sm font-semibold shadow-sm hover:bg-slate-50 active:translate-y-px transition"
+                          aria-label="Mostrar histórico de actividad"
+                        >
+                          {showActivity ? '▴' : '▾'}
+                        </button>
+                      </div>
+                    </div>
+                    {showActivity && (
+                      <>
+                        <div className="flex items-center gap-2 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setActivityFilter('all')}
+                            className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'all' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                          >
+                            Todos
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setActivityFilter('success')}
+                            className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'success' ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                          >
+                            Exitosos
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setActivityFilter('failed')}
+                            className={`rounded border px-2 py-1 active:scale-[0.98] transition ${activityFilter === 'failed' ? 'border-red-600 bg-red-600 text-white' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                          >
+                            Fallidos
+                          </button>
+                          <button
+                            type="button"
+                            onClick={loadLoginEvents}
+                            className="rounded border border-slate-200 px-2 py-1 bg-white hover:bg-slate-50 active:scale-[0.98] transition"
+                          >
+                            Actualizar
+                          </button>
+                        </div>
+                        {loginLoading ? (
+                          <p className="text-sm text-slate-500">Cargando actividad...</p>
+                        ) : loginEvents.length === 0 ? (
+                          <p className="text-sm text-slate-500">Sin registros todavía.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {loginEvents.slice(0, activityVisibleCount).map(event => (
+                              <div
+                                key={event.id}
+                                className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-slate-100 rounded px-3 py-2 text-sm"
+                              >
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-xs px-2 py-1 rounded ${event.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                      {event.status === 'success' ? 'Éxito' : 'Fallido'}
+                                    </span>
+                                    <span className="text-xs text-slate-500">{event.provider.toUpperCase()}</span>
+                                    {event.reason && (
+                                      <span className="text-xs text-slate-400">· {event.reason}</span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-slate-700">
+                                    {event.email || 'Sin email'}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {event.ip || 'IP desconocida'} · {event.city || 'Ciudad desconocida'} {event.country ? `(${event.country})` : ''}
+                                  </p>
+                                </div>
+                                <span className="text-xs text-slate-500">
+                                  {new Date(event.createdAt).toLocaleString('es-AR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                              </div>
+                            ))}
+                            {activityVisibleCount < loginEvents.length && (
+                              <button
+                                type="button"
+                                onClick={() => setActivityVisibleCount(prev => Math.min(prev + ACTIVITY_PAGE_SIZE, loginEvents.length))}
+                                className="w-full rounded border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50"
+                              >
+                                Cargar más
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </section>
+                </div>
+
+                <aside className="space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+                    <h3 className="text-sm font-semibold text-slate-700">Checklist de demo</h3>
+                    <div className="space-y-2 text-sm text-slate-600">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreatePerson(true);
+                          setShowPersons(true);
+                        }}
+                        className="w-full text-left rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50"
+                      >
+                        Cargar personas y activar listado
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFaceMode('register');
+                          setShowRegisterCapture(true);
+                        }}
+                        className="w-full text-left rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50"
+                      >
+                        Registrar rostro en un perfil
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFaceMode('verify');
+                          setVerificationResult(null);
+                          setVerifyMessage(null);
+                        }}
+                        className="w-full text-left rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50"
+                      >
+                        Probar verificación facial
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowActivity(true)}
+                        className="w-full text-left rounded-lg border border-slate-200 px-3 py-2 hover:bg-slate-50"
+                      >
+                        Revisar historial de acceso
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+                    <h3 className="text-sm font-semibold text-slate-700">Estado actual</h3>
+                    <div className="space-y-2 text-xs text-slate-500">
+                      <div className="flex items-center justify-between">
+                        <span>Personas registradas</span>
+                        <span>{persons.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Rostros cargados</span>
+                        <span>{persons.filter(person => !!person.faceDescriptor?.length).length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Eventos recientes</span>
+                        <span>{loginEvents.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Sesión activa</span>
+                        <span className="text-emerald-600">Sí</span>
+                      </div>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );
