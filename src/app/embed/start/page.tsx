@@ -5,6 +5,19 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
 
+const faceDistance = (a: number[], b: number[]) => {
+  let sum = 0;
+  const len = Math.min(a.length, b.length);
+  for (let i = 0; i < len; i += 1) {
+    const diff = a[i] - b[i];
+    sum += diff * diff;
+  }
+  return Math.sqrt(sum);
+};
+
+const isSameFace = (a: number[], b: number[], threshold = 0.45) =>
+  faceDistance(a, b) < threshold;
+
 function EmbedStartContent() {
   const { status } = useSession();
   const searchParams = useSearchParams();
@@ -15,7 +28,7 @@ function EmbedStartContent() {
   const [clearingSession, setClearingSession] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
-  const [faceLoginLocked, setFaceLoginLocked] = useState(false);
+  const [lastFailedFaceDescriptor, setLastFailedFaceDescriptor] = useState<number[] | null>(null);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -29,7 +42,7 @@ function EmbedStartContent() {
   }, [origin, status]);
 
   const handleFaceLogin = async (descriptor: number[]) => {
-    if (faceLoginLocked) {
+    if (lastFailedFaceDescriptor && isSameFace(descriptor, lastFailedFaceDescriptor)) {
       return;
     }
     setAuthMessage(null);
@@ -40,10 +53,11 @@ function EmbedStartContent() {
 
     if (!result?.ok) {
       setAuthMessage('No autorizado por reconocimiento facial. Reintentá con Google.');
-      setFaceLoginLocked(true);
+      setLastFailedFaceDescriptor(descriptor);
       return;
     }
 
+    setLastFailedFaceDescriptor(null);
     window.location.href = `/embed/callback?origin=${encodeURIComponent(origin)}`;
   };
 
@@ -106,7 +120,7 @@ function EmbedStartContent() {
             description="Captura tu rostro para iniciar sesión."
             actionLabel="Iniciar sesión"
             noticeLabel="Intentando iniciar sesión..."
-            autoCaptureDisabled={faceLoginLocked || clearingSession}
+            autoCaptureDisabled={clearingSession}
           />
         </div>
 

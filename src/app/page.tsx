@@ -43,6 +43,19 @@ interface LoginEvent {
   createdAt: string;
 }
 
+const faceDistance = (a: number[], b: number[]) => {
+  let sum = 0;
+  const len = Math.min(a.length, b.length);
+  for (let i = 0; i < len; i += 1) {
+    const diff = a[i] - b[i];
+    sum += diff * diff;
+  }
+  return Math.sqrt(sum);
+};
+
+const isSameFace = (a: number[], b: number[], threshold = 0.45) =>
+  faceDistance(a, b) < threshold;
+
 function LoginGate({
   onFaceLogin,
   authMessage,
@@ -148,7 +161,7 @@ export default function Home() {
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
   const [verificationResult, setVerificationResult] = useState<FaceMatchResult | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
-  const [faceLoginLocked, setFaceLoginLocked] = useState(false);
+  const [lastFailedFaceDescriptor, setLastFailedFaceDescriptor] = useState<number[] | null>(null);
   const [loginEvents, setLoginEvents] = useState<LoginEvent[]>([]);
   const [loginLoading, setLoginLoading] = useState(false);
   const [activityFilter, setActivityFilter] = useState<'all' | 'success' | 'failed'>('all');
@@ -328,7 +341,7 @@ export default function Home() {
   };
 
   const handleFaceLogin = async (descriptor: number[]) => {
-    if (faceLoginLocked) {
+    if (lastFailedFaceDescriptor && isSameFace(descriptor, lastFailedFaceDescriptor)) {
       return;
     }
     setAuthMessage(null);
@@ -339,8 +352,11 @@ export default function Home() {
 
     if (!result?.ok) {
       setAuthMessage('No autorizado por reconocimiento facial. Reintentá con Google.');
-      setFaceLoginLocked(true);
+      setLastFailedFaceDescriptor(descriptor);
+      return;
     }
+
+    setLastFailedFaceDescriptor(null);
   };
 
   const handleUpdatePerson = async (
@@ -380,7 +396,7 @@ export default function Home() {
         <LoginGate
           onFaceLogin={handleFaceLogin}
           authMessage={authMessage}
-          faceLoginLocked={faceLoginLocked}
+          faceLoginLocked={false}
           setAuthMessage={setAuthMessage}
         />
       </Suspense>
