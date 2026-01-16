@@ -14,7 +14,8 @@ function EmbedCallbackContent() {
       try {
         const response = await fetch('/api/embed/token', { cache: 'no-store' });
         if (!response.ok) {
-          throw new Error('token_error');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData?.error || 'token_error');
         }
         const data = await response.json();
         if (!active) {
@@ -30,9 +31,18 @@ function EmbedCallbackContent() {
         setTimeout(() => {
           window.close();
         }, 800);
-      } catch {
+      } catch (error) {
         if (!active) {
           return;
+        }
+        if (window.opener) {
+          window.opener.postMessage(
+            {
+              type: 'accounts-error',
+              reason: error instanceof Error ? error.message : 'token_error'
+            },
+            origin
+          );
         }
         setStatus('No pudimos validar el acceso. Cerrá esta ventana y reintentá.');
       }

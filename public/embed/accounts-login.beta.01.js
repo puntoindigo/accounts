@@ -54,18 +54,39 @@
   status.style.fontSize = '12px';
   status.style.color = '#64748b';
 
+  let popupWindow = null;
+  let popupWatcher = null;
+
+  const stopWatcher = () => {
+    if (popupWatcher) {
+      window.clearInterval(popupWatcher);
+      popupWatcher = null;
+    }
+  };
+
   const openLogin = () => {
     const url = `${baseUrl}/embed/start?origin=${encodeURIComponent(window.location.origin)}`;
     const width = 480;
     const height = 720;
     const left = Math.max(0, window.screenX + (window.outerWidth - width) / 2);
     const top = Math.max(0, window.screenY + (window.outerHeight - height) / 2);
-    window.open(
+    if (popupWindow && !popupWindow.closed) {
+      popupWindow.close();
+    }
+    popupWindow = window.open(
       url,
       'accounts-login',
       `width=${width},height=${height},left=${left},top=${top}`
     );
     status.textContent = 'Esperando autenticación...';
+    stopWatcher();
+    popupWatcher = window.setInterval(() => {
+      if (!popupWindow || popupWindow.closed) {
+        stopWatcher();
+        popupWindow = null;
+        status.textContent = 'La ventana se cerró. Podés intentar nuevamente.';
+      }
+    }, 500);
   };
 
   button.addEventListener('click', openLogin);
@@ -76,8 +97,22 @@
     }
     if (event.data && event.data.type === 'accounts-login') {
       status.textContent = 'Acceso validado. Continuando...';
+      stopWatcher();
+      if (popupWindow && !popupWindow.closed) {
+        popupWindow.close();
+      }
       if (window.AccountsLoginBeta01 && typeof window.AccountsLoginBeta01.onSuccess === 'function') {
         window.AccountsLoginBeta01.onSuccess(event.data);
+      }
+    }
+    if (event.data && event.data.type === 'accounts-error') {
+      status.textContent = 'No se pudo validar el acceso. Reintentá.';
+      stopWatcher();
+      if (popupWindow && !popupWindow.closed) {
+        popupWindow.close();
+      }
+      if (window.AccountsLoginBeta01 && typeof window.AccountsLoginBeta01.onError === 'function') {
+        window.AccountsLoginBeta01.onError(event.data);
       }
     }
   });
