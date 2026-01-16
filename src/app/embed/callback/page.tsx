@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 
 function EmbedCallbackContent() {
   const searchParams = useSearchParams();
@@ -22,6 +23,7 @@ function EmbedCallbackContent() {
         if (ackTimeout) {
           clearTimeout(ackTimeout);
         }
+        signOut({ redirect: false });
         window.close();
       }
     };
