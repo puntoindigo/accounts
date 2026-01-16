@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
 
@@ -12,12 +12,19 @@ function EmbedStartContent() {
     () => searchParams.get('origin') || window.location.origin,
     [searchParams]
   );
+  const [clearingSession, setClearingSession] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [faceLoginLocked, setFaceLoginLocked] = useState(false);
 
   useEffect(() => {
     if (status === 'authenticated') {
-      window.location.href = `/embed/callback?origin=${encodeURIComponent(origin)}`;
+      setClearingSession(true);
+      setNotice('Reiniciando sesión para validar tu identidad...');
+      signOut({ redirect: false }).finally(() => {
+        setClearingSession(false);
+        setNotice(null);
+      });
     }
   }, [origin, status]);
 
@@ -49,9 +56,14 @@ function EmbedStartContent() {
           <p className="text-sm text-slate-500">Ingresá para continuar en Recibos</p>
         </div>
 
+        {notice && (
+          <p className="text-xs text-slate-500 text-center">{notice}</p>
+        )}
+
         <button
           type="button"
           className="w-full rounded-lg border border-slate-200 bg-white text-slate-700 py-2 text-sm font-medium shadow-sm hover:bg-slate-50 flex items-center justify-center gap-2"
+          disabled={clearingSession}
           onClick={() =>
             signIn('google', {
               callbackUrl: `/embed/callback?origin=${encodeURIComponent(origin)}`
@@ -94,7 +106,7 @@ function EmbedStartContent() {
             description="Captura tu rostro para iniciar sesión."
             actionLabel="Iniciar sesión"
             noticeLabel="Intentando iniciar sesión..."
-            autoCaptureDisabled={faceLoginLocked}
+            autoCaptureDisabled={faceLoginLocked || clearingSession}
           />
         </div>
 
