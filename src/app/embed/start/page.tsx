@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
 
-export default function EmbedStartPage() {
+function EmbedStartContent() {
   const { status } = useSession();
   const searchParams = useSearchParams();
   const origin = useMemo(
@@ -103,5 +103,21 @@ export default function EmbedStartPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function EmbedStartPage() {
+  return (
+    <Suspense
+      fallback={(
+        <div className="min-h-screen bg-slate-100 text-slate-900 flex items-center justify-center px-4">
+          <div className="rounded-2xl bg-white px-6 py-4 shadow-lg text-sm text-slate-600">
+            Cargando...
+          </div>
+        </div>
+      )}
+    >
+      <EmbedStartContent />
+    </Suspense>
   );
 }

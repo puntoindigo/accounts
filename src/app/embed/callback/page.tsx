@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function EmbedCallbackPage() {
+function EmbedCallbackContent() {
   const searchParams = useSearchParams();
   const origin = useMemo(() => searchParams.get('origin') || '*', [searchParams]);
   const [status, setStatus] = useState('Validando acceso...');
@@ -50,5 +50,21 @@ export default function EmbedCallbackPage() {
         {status}
       </div>
     </div>
+  );
+}
+
+export default function EmbedCallbackPage() {
+  return (
+    <Suspense
+      fallback={(
+        <div className="min-h-screen bg-slate-100 text-slate-900 flex items-center justify-center px-4">
+          <div className="rounded-2xl bg-white px-6 py-4 shadow-lg text-sm text-slate-600">
+            Cargando...
+          </div>
+        </div>
+      )}
+    >
+      <EmbedCallbackContent />
+    </Suspense>
   );
 }
