@@ -76,6 +76,9 @@ function LoginGate({
   setAuthMessage: (value: string | null) => void;
 }) {
   const searchParams = useSearchParams();
+  const [rfidUid, setRfidUid] = useState('');
+  const [rfidLoading, setRfidLoading] = useState(false);
+  const [rfidMessage, setRfidMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const error = searchParams.get('error');
@@ -83,6 +86,26 @@ function LoginGate({
       setAuthMessage('Acceso denegado. Verificá que tu cuenta esté autorizada.');
     }
   }, [searchParams, setAuthMessage]);
+
+  const handleRfidLogin = async () => {
+    const normalized = rfidUid.trim().replace(/\s+/g, '');
+    if (!normalized) {
+      setRfidMessage('Ingresá un UID válido.');
+      return;
+    }
+    setRfidMessage(null);
+    setRfidLoading(true);
+    const result = await signIn('rfid', {
+      redirect: false,
+      uid: normalized
+    });
+    setRfidLoading(false);
+    if (!result?.ok) {
+      setRfidMessage('No autorizado por RFID. Verificá la tarjeta.');
+      return;
+    }
+    setRfidUid('');
+  };
 
   return (
     <div className="min-h-screen bg-blue-600 text-slate-900 flex items-center justify-center px-4 py-12">
@@ -140,6 +163,30 @@ function LoginGate({
             noticeLabel="Intentando iniciar sesión..."
             autoCaptureDisabled={faceLoginLocked}
           />
+        </div>
+
+        <div className="rounded-lg border border-slate-200 p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-slate-700">Tarjeta RFID</h2>
+          <p className="text-xs text-slate-500">
+            Acercá la tarjeta al lector o pegá el UID.
+          </p>
+          <input
+            value={rfidUid}
+            onChange={(event) => setRfidUid(event.target.value)}
+            className="w-full rounded border border-slate-200 px-3 py-2 text-sm font-mono"
+            placeholder="UID de tarjeta"
+          />
+          <button
+            type="button"
+            onClick={handleRfidLogin}
+            disabled={rfidLoading}
+            className="w-full rounded bg-slate-900 text-white py-2 text-sm disabled:opacity-60"
+          >
+            {rfidLoading ? 'Validando...' : 'Validar con RFID'}
+          </button>
+          {rfidMessage && (
+            <p className="text-xs text-slate-600">{rfidMessage}</p>
+          )}
         </div>
 
         {authMessage && (
