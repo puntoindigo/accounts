@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
@@ -79,6 +79,8 @@ function LoginGate({
   const [rfidUid, setRfidUid] = useState('');
   const [rfidLoading, setRfidLoading] = useState(false);
   const [rfidMessage, setRfidMessage] = useState<string | null>(null);
+  const [rfidAvailable, setRfidAvailable] = useState<boolean | null>(null);
+  const rfidInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const error = searchParams.get('error');
@@ -87,7 +89,18 @@ function LoginGate({
     }
   }, [searchParams, setAuthMessage]);
 
+  useEffect(() => {
+    rfidInputRef.current?.focus();
+    fetch('/api/rfid/status', { cache: 'no-store' })
+      .then(response => response.json())
+      .then(data => setRfidAvailable(Boolean(data?.available)))
+      .catch(() => setRfidAvailable(false));
+  }, []);
+
   const handleRfidLogin = async () => {
+    if (!rfidAvailable) {
+      return;
+    }
     const normalized = rfidUid.trim().replace(/\s+/g, '');
     if (!normalized) {
       setRfidMessage('Ingresá un UID válido.');
@@ -108,11 +121,12 @@ function LoginGate({
   };
 
   return (
-    <div className="min-h-screen bg-blue-600 text-slate-900 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6">
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 space-y-6 border border-slate-200">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-semibold text-slate-900">Sistema de Identidad</h1>
-          <p className="text-sm text-slate-500">Selecciona un método de acceso</p>
+          <p className="text-xs uppercase tracking-wide text-slate-400">Accounts</p>
+          <h1 className="text-2xl font-semibold text-slate-900">Acceso seguro</h1>
+          <p className="text-sm text-slate-500">Seleccioná un método de acceso</p>
         </div>
 
         <button
@@ -173,17 +187,30 @@ function LoginGate({
           <input
             value={rfidUid}
             onChange={(event) => setRfidUid(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                handleRfidLogin();
+              }
+            }}
+            ref={rfidInputRef}
             className="w-full rounded border border-slate-200 px-3 py-2 text-sm font-mono"
             placeholder="UID de tarjeta"
+            disabled={rfidAvailable === false}
           />
           <button
             type="button"
             onClick={handleRfidLogin}
-            disabled={rfidLoading}
+            disabled={rfidLoading || rfidAvailable === false}
             className="w-full rounded bg-slate-900 text-white py-2 text-sm disabled:opacity-60"
           >
             {rfidLoading ? 'Validando...' : 'Validar con RFID'}
           </button>
+          {rfidAvailable === false && (
+            <p className="text-xs text-slate-400">
+              No hay tarjetas RFID registradas todavía.
+            </p>
+          )}
           {rfidMessage && (
             <p className="text-xs text-slate-600">{rfidMessage}</p>
           )}
@@ -237,6 +264,20 @@ export default function Home() {
     () => persons.find(person => person.id === selectedPersonId) || null,
     [persons, selectedPersonId]
   );
+  const personsById = useMemo(() => {
+    const map = new Map<string, Person>();
+    persons.forEach(person => {
+      map.set(person.id, person);
+    });
+    return map;
+  }, [persons]);
+  const personsByEmail = useMemo(() => {
+    const map = new Map<string, Person>();
+    persons.forEach(person => {
+      map.set(person.email.toLowerCase(), person);
+    });
+    return map;
+  }, [persons]);
   const currentUserEmail = (session?.user?.email || '').toLowerCase().trim();
   const currentPerson = useMemo(
     () => persons.find(person => person.email.toLowerCase() === currentUserEmail) || null,
@@ -483,6 +524,30 @@ export default function Home() {
       await loadRfidCards(selectedPerson.id);
     } catch {
       setRfidMessage('No se pudo asociar la tarjeta.');
+    } finally {
+      setRfidLoading(false);
+    }
+  };
+
+  const handleDeactivateRfid = async (cardId: string) => {
+    setRfidLoading(true);
+    setRfidMessage(null);
+    try {
+      const response = await fetch(`/api/rfid/${cardId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: false })
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.card) {
+        setRfidMessage(data?.error || 'No se pudo desactivar la tarjeta.');
+        return;
+      }
+      if (selectedPerson) {
+        await loadRfidCards(selectedPerson.id);
+      }
+    } catch {
+      setRfidMessage('No se pudo desactivar la tarjeta.');
     } finally {
       setRfidLoading(false);
     }
@@ -975,6 +1040,12 @@ export default function Home() {
                 <input
                   value={rfidUid}
                   onChange={(event) => setRfidUid(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      handleAssociateRfid();
+                    }
+                  }}
                   className="flex-1 rounded border border-slate-200 px-3 py-2 text-sm"
                   placeholder="UID de tarjeta RFID"
                 />
@@ -1011,7 +1082,15 @@ export default function Home() {
                         <span className={`px-2 py-1 rounded-full text-[10px] ${card.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
                           {card.active ? 'Activa' : 'Inactiva'}
                         </span>
-                        {!card.active && (
+                        {card.active ? (
+                          <button
+                            type="button"
+                            onClick={() => handleDeactivateRfid(card.id)}
+                            className="text-[10px] text-slate-600 hover:text-slate-700"
+                          >
+                            Desactivar
+                          </button>
+                        ) : (
                           <button
                             type="button"
                             onClick={() => handleDeleteRfid(card.id)}
@@ -1097,10 +1176,30 @@ export default function Home() {
                           )}
                         </div>
                         <p className="text-sm text-slate-700">
-                          {event.email || 'Sin email'}
+                          {(() => {
+                            const person =
+                              (event.personId && personsById.get(event.personId)) ||
+                              (event.email && personsByEmail.get(event.email.toLowerCase()));
+                            if (person) {
+                              return `${person.nombre} · ${person.empresa}`;
+                            }
+                            return event.email || 'Sin email';
+                          })()}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {event.ip || 'IP desconocida'} · {event.city || 'Ciudad desconocida'} {event.country ? `(${event.country})` : ''}
+                          {event.ip || 'IP desconocida'} · {(() => {
+                            const safeDecode = (value: string | null) => {
+                              if (!value) return null;
+                              try {
+                                return decodeURIComponent(value.replace(/\+/g, ' '));
+                              } catch {
+                                return value;
+                              }
+                            };
+                            const city = safeDecode(event.city) || 'Ciudad desconocida';
+                            const country = safeDecode(event.country);
+                            return `${city}${country ? ` (${country})` : ''}`;
+                          })()}
                         </p>
                       </div>
                       <span className="text-xs text-slate-500">

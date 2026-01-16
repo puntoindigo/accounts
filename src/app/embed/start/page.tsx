@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
@@ -37,6 +37,7 @@ function EmbedStartContent() {
   const [needsFreshLogin, setNeedsFreshLogin] = useState(true);
   const [rfidUid, setRfidUid] = useState('');
   const [rfidLoading, setRfidLoading] = useState(false);
+  const rfidInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (status === 'authenticated' && needsFreshLogin && !loginInitiated) {
@@ -49,6 +50,12 @@ function EmbedStartContent() {
       });
     }
   }, [needsFreshLogin, loginInitiated, status]);
+
+  useEffect(() => {
+    if (showRfid) {
+      rfidInputRef.current?.focus();
+    }
+  }, [showRfid]);
 
   const handleFaceLogin = async (descriptor: number[]) => {
     if (lastFailedFaceDescriptor && isSameFace(descriptor, lastFailedFaceDescriptor)) {
@@ -176,6 +183,13 @@ function EmbedStartContent() {
             <input
               value={rfidUid}
               onChange={(event) => setRfidUid(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  handleRfidLogin();
+                }
+              }}
+              ref={rfidInputRef}
               className="w-full rounded border border-slate-200 px-3 py-2 text-sm font-mono"
               placeholder="UID de tarjeta"
             />

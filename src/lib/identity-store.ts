@@ -308,3 +308,26 @@ export async function deleteRfidCard(cardId: string): Promise<boolean> {
     .eq('id', cardId);
   return !error;
 }
+
+export async function setRfidCardActive(cardId: string, active: boolean): Promise<RfidCard | null> {
+  ensureSupabase();
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data, error } = await supabaseAdmin
+    .from('accounts_rfid_cards')
+    .update({ active })
+    .eq('id', cardId)
+    .select('*')
+    .single();
+  if (error) return null;
+  return mapRfidCard(data);
+}
+
+export async function hasRfidCards(): Promise<boolean> {
+  ensureSupabase();
+  const supabaseAdmin = getSupabaseAdmin();
+  const { count, error } = await supabaseAdmin
+    .from('accounts_rfid_cards')
+    .select('id', { count: 'exact', head: true });
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
