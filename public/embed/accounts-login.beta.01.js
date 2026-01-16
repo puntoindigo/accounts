@@ -91,6 +91,12 @@
 
   button.addEventListener('click', openLogin);
 
+  const sendAck = (event, receivedType) => {
+    if (event.source && typeof event.source.postMessage === 'function') {
+      event.source.postMessage({ type: 'accounts-ack', received: receivedType }, event.origin);
+    }
+  };
+
   window.addEventListener('message', (event) => {
     if (event.origin !== baseUrl) {
       return;
@@ -101,16 +107,19 @@
       if (popupWindow && !popupWindow.closed) {
         popupWindow.close();
       }
+      sendAck(event, 'accounts-login');
       if (window.AccountsLoginBeta01 && typeof window.AccountsLoginBeta01.onSuccess === 'function') {
         window.AccountsLoginBeta01.onSuccess(event.data);
       }
     }
     if (event.data && event.data.type === 'accounts-error') {
-      status.textContent = 'No se pudo validar el acceso. Reintentá.';
+      const reason = event.data.reason ? ` (${event.data.reason})` : '';
+      status.textContent = `No se pudo validar el acceso${reason}. Reintentá.`;
       stopWatcher();
       if (popupWindow && !popupWindow.closed) {
         popupWindow.close();
       }
+      sendAck(event, 'accounts-error');
       if (window.AccountsLoginBeta01 && typeof window.AccountsLoginBeta01.onError === 'function') {
         window.AccountsLoginBeta01.onError(event.data);
       }

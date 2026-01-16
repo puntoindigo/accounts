@@ -7,9 +7,26 @@ function EmbedCallbackContent() {
   const searchParams = useSearchParams();
   const origin = useMemo(() => searchParams.get('origin') || '*', [searchParams]);
   const [status, setStatus] = useState('Validando acceso...');
+  const [awaitingAck, setAwaitingAck] = useState(false);
 
   useEffect(() => {
     let active = true;
+    let ackTimeout: ReturnType<typeof setTimeout> | null = null;
+    const handleAck = (event: MessageEvent) => {
+      if (event.origin !== origin) {
+        return;
+      }
+      if (event.data?.type === 'accounts-ack') {
+        setAwaitingAck(false);
+        setStatus('Acceso confirmado. Podés volver a la app.');
+        if (ackTimeout) {
+          clearTimeout(ackTimeout);
+        }
+        window.close();
+      }
+    };
+
+    window.addEventListener('message', handleAck);
     const run = async () => {
       try {
         const response = await fetch('/api/embed/token', { cache: 'no-store' });
@@ -26,11 +43,15 @@ function EmbedCallbackContent() {
             { type: 'accounts-login', token: data.token, user: data.user },
             origin
           );
+          setAwaitingAck(true);
+          setStatus('Esperando confirmación de la app...');
+          ackTimeout = setTimeout(() => {
+            setAwaitingAck(false);
+            setStatus('No pudimos confirmar en la app. Cerrá y reintentá.');
+          }, 4000);
+          return;
         }
-        setStatus('Acceso validado. Podés volver a la app.');
-        setTimeout(() => {
-          window.close();
-        }, 800);
+        setStatus('Acceso validado, pero no detectamos la app. Abrí desde el login.');
       } catch (error) {
         if (!active) {
           return;
@@ -44,13 +65,18 @@ function EmbedCallbackContent() {
             origin
           );
         }
-        setStatus('No pudimos validar el acceso. Cerrá esta ventana y reintentá.');
+        const reason = error instanceof Error ? error.message : 'token_error';
+        setStatus(`No pudimos validar el acceso (${reason}). Cerrá y reintentá.`);
       }
     };
 
     run();
     return () => {
       active = false;
+      window.removeEventListener('message', handleAck);
+      if (ackTimeout) {
+        clearTimeout(ackTimeout);
+      }
     };
   }, [origin]);
 
