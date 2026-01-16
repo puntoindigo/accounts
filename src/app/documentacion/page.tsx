@@ -35,6 +35,21 @@ export default async function DocumentacionPage() {
             <li>
               <span className="font-semibold">Modelo de producto y alcance.</span> Definir el scope
               del servicio como reemplazo de login OAuth y validación biométrica.
+              <div className="mt-2 text-xs text-slate-500 space-y-1">
+                <p>
+                  Propuesta: servicio multi-tenant de identidad que ofrece inicio de sesion por
+                  Google y/o reconocimiento facial, emite un resultado de autenticacion y consulta
+                  permisos en la app cliente antes de finalizar el acceso.
+                </p>
+                <p>
+                  Incluye: configuracion por app, selector de metodos, callback de permisos,
+                  registro de eventos y panel de administracion de usuarios/rostros.
+                </p>
+                <p>
+                  Excluye (por ahora): gestion completa de roles dentro de la app cliente y
+                  onboarding de usuarios finales fuera del panel principal.
+                </p>
+              </div>
             </li>
             <li>
               <span className="font-semibold">Flujo de autenticación.</span> Secuencia completa:
