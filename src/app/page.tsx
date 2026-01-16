@@ -441,6 +441,27 @@ export default function Home() {
     }
   };
 
+  const handleDeleteRfid = async (cardId: string) => {
+    if (!selectedPerson) {
+      return;
+    }
+    setRfidLoading(true);
+    setRfidMessage(null);
+    try {
+      const response = await fetch(`/api/rfid/${cardId}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (!response.ok || !data?.deleted) {
+        setRfidMessage(data?.error || 'No se pudo eliminar la tarjeta.');
+        return;
+      }
+      await loadRfidCards(selectedPerson.id);
+    } catch {
+      setRfidMessage('No se pudo eliminar la tarjeta.');
+    } finally {
+      setRfidLoading(false);
+    }
+  };
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center">
@@ -939,9 +960,20 @@ export default function Home() {
                           {new Date(card.createdAt).toLocaleDateString('es-AR')}
                         </p>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-[10px] ${card.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
-                        {card.active ? 'Activa' : 'Inactiva'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-[10px] ${card.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}>
+                          {card.active ? 'Activa' : 'Inactiva'}
+                        </span>
+                        {!card.active && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRfid(card.id)}
+                            className="text-[10px] text-red-600 hover:text-red-700"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))
                 )}

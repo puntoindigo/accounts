@@ -26,14 +26,17 @@ function EmbedStartContent() {
     [searchParams]
   );
   const selectedMethod = useMemo(() => searchParams.get('method') || 'google', [searchParams]);
-  const showGoogle = selectedMethod !== 'face';
-  const showFace = selectedMethod !== 'google';
+  const showGoogle = selectedMethod !== 'face' && selectedMethod !== 'rfid';
+  const showFace = selectedMethod !== 'google' && selectedMethod !== 'rfid';
+  const showRfid = selectedMethod === 'rfid';
   const [clearingSession, setClearingSession] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [lastFailedFaceDescriptor, setLastFailedFaceDescriptor] = useState<number[] | null>(null);
   const [loginInitiated, setLoginInitiated] = useState(false);
   const [needsFreshLogin, setNeedsFreshLogin] = useState(true);
+  const [rfidUid, setRfidUid] = useState('');
+  const [rfidLoading, setRfidLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'authenticated' && needsFreshLogin && !loginInitiated) {
@@ -66,6 +69,28 @@ function EmbedStartContent() {
     }
 
     setLastFailedFaceDescriptor(null);
+    window.location.href = `/embed/callback?origin=${encodeURIComponent(origin)}`;
+  };
+
+  const handleRfidLogin = async () => {
+    const normalized = rfidUid.trim().replace(/\s+/g, '');
+    if (!normalized) {
+      setAuthMessage('Ingresá un UID válido.');
+      return;
+    }
+    setAuthMessage(null);
+    setLoginInitiated(true);
+    setNeedsFreshLogin(false);
+    setRfidLoading(true);
+    const result = await signIn('rfid', {
+      redirect: false,
+      uid: normalized
+    });
+    setRfidLoading(false);
+    if (!result?.ok) {
+      setAuthMessage('No autorizado por RFID. Verificá la tarjeta.');
+      return;
+    }
     window.location.href = `/embed/callback?origin=${encodeURIComponent(origin)}`;
   };
 
@@ -139,6 +164,29 @@ function EmbedStartContent() {
               noticeLabel="Intentando iniciar sesión..."
               autoCaptureDisabled={clearingSession}
             />
+          </div>
+        )}
+
+        {showRfid && (
+          <div className="rounded-lg border border-slate-200 p-4 space-y-3">
+            <h2 className="text-sm font-semibold text-slate-700">Tarjeta RFID</h2>
+            <p className="text-xs text-slate-500">
+              Acercá la tarjeta al lector o escribí el UID.
+            </p>
+            <input
+              value={rfidUid}
+              onChange={(event) => setRfidUid(event.target.value)}
+              className="w-full rounded border border-slate-200 px-3 py-2 text-sm font-mono"
+              placeholder="UID de tarjeta"
+            />
+            <button
+              type="button"
+              disabled={rfidLoading || clearingSession}
+              onClick={handleRfidLogin}
+              className="w-full rounded bg-slate-900 text-white py-2 text-sm disabled:opacity-60"
+            >
+              {rfidLoading ? 'Validando...' : 'Validar con RFID'}
+            </button>
           </div>
         )}
 

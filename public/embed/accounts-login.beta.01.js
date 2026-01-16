@@ -91,6 +91,12 @@
       label: 'FR',
       description: 'Validación con reconocimiento facial.',
       icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="#1d9bf0"><path d="M5 7a2 2 0 0 1 2-2h2V3H7a4 4 0 0 0-4 4v2h2V7zm12-4h-2v2h2a2 2 0 0 1 2 2v2h2V7a4 4 0 0 0-4-4zm2 14a2 2 0 0 1-2 2h-2v2h2a4 4 0 0 0 4-4v-2h-2v2zM5 17v-2H3v2a4 4 0 0 0 4 4h2v-2H7a2 2 0 0 1-2-2zm3-6a4 4 0 1 0 8 0 4 4 0 0 0-8 0zm2 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0z"/></svg>'
+    },
+    {
+      id: 'rfid',
+      label: 'RFID',
+      description: 'Validación con tarjeta RFID registrada.',
+      icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="#22c55e"><path d="M4 6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1h2V6a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v10a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4v-1h-2v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6zm7 2h6v2h-6V8zm0 4h6v2h-6v-2zm0 4h4v2h-4v-2z"/></svg>'
     }
   ];
 

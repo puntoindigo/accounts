@@ -298,3 +298,13 @@ export async function deactivateRfidCard(cardId: string): Promise<RfidCard | nul
   if (error) return null;
   return mapRfidCard(data);
 }
+
+export async function deleteRfidCard(cardId: string): Promise<boolean> {
+  ensureSupabase();
+  const supabaseAdmin = getSupabaseAdmin();
+  const { error } = await supabaseAdmin
+    .from('accounts_rfid_cards')
+    .delete()
+    .eq('id', cardId);
+  return !error;
+}
