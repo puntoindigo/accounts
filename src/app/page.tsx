@@ -368,12 +368,6 @@ export default function Home() {
     }
   }, [selectedPersonId, showActivity]);
 
-  useEffect(() => {
-    if (showCreatePerson) {
-      setShowPersons(false);
-      setSelectedPersonId(null); // Limpiar selección cuando se abre el formulario de creación
-    }
-  }, [showCreatePerson]);
 
   useEffect(() => {
     setPersonsVisibleCount(prev => Math.min(Math.max(prev, PERSONS_PAGE_SIZE), persons.length || PERSONS_PAGE_SIZE));
@@ -885,7 +879,7 @@ export default function Home() {
             </div>
           )}
 
-          {showPersons && !showCreatePerson && (
+          {showPersons && (
             <div className="space-y-3">
               {loading ? (
                 <p className="text-sm text-slate-500">Cargando personas...</p>
@@ -983,7 +977,7 @@ export default function Home() {
           )}
         </section>
 
-        {!showCreatePerson && selectedPerson ? (
+        {selectedPerson ? (
           <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">Identidad facial</h2>
@@ -1098,16 +1092,16 @@ export default function Home() {
               </div>
             )}
           </section>
-        ) : !showCreatePerson ? (
+        ) : (
           <section className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">Identidad facial</h2>
             <p className="text-sm text-slate-500">
               Selecciona una persona para habilitar el módulo.
             </p>
           </section>
-        ) : null}
+        )}
 
-        {!showCreatePerson && selectedPerson ? (
+        {selectedPerson ? (
           <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">RFID</h2>
@@ -1189,14 +1183,14 @@ export default function Home() {
               </div>
             </div>
           </section>
-        ) : !showCreatePerson ? (
+        ) : (
           <section className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">RFID</h2>
             <p className="text-sm text-slate-500">
               Selecciona una persona para vincular tarjetas RFID.
             </p>
           </section>
-        ) : null}
+        )}
 
         <section className="rounded-lg border border-slate-200 bg-white p-4 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
