@@ -20,7 +20,7 @@
   const card = document.createElement('div');
   card.style.border = '1px solid #e2e8f0';
   card.style.borderRadius = '16px';
-  card.style.padding = '18px';
+  card.style.padding = '14px';
   card.style.background = '#fff';
   card.style.boxShadow = '0 8px 24px rgba(15, 23, 42, 0.08)';
   card.style.fontFamily = 'system-ui, -apple-system, Segoe UI, sans-serif';
@@ -29,7 +29,7 @@
   header.style.display = 'flex';
   header.style.alignItems = 'center';
   header.style.justifyContent = 'space-between';
-  header.style.marginBottom = '10px';
+  header.style.marginBottom = '6px';
 
   const title = document.createElement('div');
   title.textContent = 'Acceso con Accounts';
@@ -48,23 +48,29 @@
   accountsLink.style.textUnderlineOffset = '4px';
 
   header.appendChild(title);
-  header.appendChild(accountsLink);
 
   const subtitle = document.createElement('div');
   subtitle.textContent = 'Elegí un método para validar identidad.';
   subtitle.style.fontSize = '12px';
   subtitle.style.color = '#64748b';
-  subtitle.style.marginBottom = '12px';
+  subtitle.style.marginBottom = '6px';
+
+  const accountsLinkRow = document.createElement('div');
+  accountsLinkRow.style.display = 'flex';
+  accountsLinkRow.style.justifyContent = 'flex-end';
+  accountsLinkRow.style.marginBottom = '8px';
+  accountsLinkRow.appendChild(accountsLink);
 
   const tabs = document.createElement('div');
   tabs.style.display = 'flex';
-  tabs.style.gap = '8px';
-  tabs.style.marginBottom = '12px';
+  tabs.style.gap = '6px';
+  tabs.style.marginBottom = '10px';
+  tabs.style.justifyContent = 'flex-end';
 
   const content = document.createElement('div');
   content.style.border = '1px solid #e2e8f0';
   content.style.borderRadius = '12px';
-  content.style.padding = '12px';
+  content.style.padding = '10px';
   content.style.background = '#f8fafc';
 
   const status = document.createElement('div');
@@ -132,29 +138,36 @@
     }
     content.innerHTML = '';
 
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.gap = '8px';
-    row.style.marginBottom = '8px';
-
-    const iconWrapper = document.createElement('span');
+    const iconWrapper = document.createElement('div');
     iconWrapper.innerHTML = method.icon;
+    iconWrapper.style.display = 'flex';
+    iconWrapper.style.justifyContent = 'center';
+    iconWrapper.style.alignItems = 'center';
+    iconWrapper.style.width = '54px';
+    iconWrapper.style.height = '54px';
+    iconWrapper.style.borderRadius = '18px';
+    iconWrapper.style.background = '#ffffff';
+    iconWrapper.style.border = '1px solid #e2e8f0';
+    iconWrapper.style.margin = '0 auto 10px auto';
+    iconWrapper.querySelectorAll('svg').forEach(svg => {
+      svg.setAttribute('width', '28');
+      svg.setAttribute('height', '28');
+    });
 
-    const label = document.createElement('span');
+    const label = document.createElement('div');
     label.textContent = method.label;
     label.style.fontWeight = '600';
     label.style.fontSize = '13px';
     label.style.color = '#0f1419';
-
-    row.appendChild(iconWrapper);
-    row.appendChild(label);
+    label.style.textAlign = 'center';
+    label.style.marginBottom = '6px';
 
     const desc = document.createElement('div');
     desc.textContent = method.description;
     desc.style.fontSize = '12px';
     desc.style.color = '#64748b';
     desc.style.marginBottom = '10px';
+    desc.style.textAlign = 'center';
 
     const action = document.createElement('button');
     action.type = 'button';
@@ -169,7 +182,8 @@
     action.style.cursor = 'pointer';
     action.addEventListener('click', () => openLogin(method.id));
 
-    content.appendChild(row);
+    content.appendChild(iconWrapper);
+    content.appendChild(label);
     content.appendChild(desc);
     content.appendChild(action);
   };
@@ -180,11 +194,11 @@
     tab.style.display = 'flex';
     tab.style.alignItems = 'center';
     tab.style.gap = '6px';
-    tab.style.padding = '6px 10px';
+    tab.style.padding = '4px 8px';
     tab.style.borderRadius = '999px';
     tab.style.border = '1px solid #e2e8f0';
     tab.style.background = 'white';
-    tab.style.fontSize = '12px';
+    tab.style.fontSize = '11px';
     tab.style.cursor = 'pointer';
     tab.style.color = '#0f1419';
     tab.innerHTML = `${method.icon}<span>${method.label}</span>`;
@@ -256,6 +270,7 @@
 
   card.appendChild(header);
   card.appendChild(subtitle);
+  card.appendChild(accountsLinkRow);
   card.appendChild(tabs);
   card.appendChild(content);
   card.appendChild(status);
