@@ -288,6 +288,9 @@ export default function Home() {
   const [showCreatePerson, setShowCreatePerson] = useState(false);
   const [createPersonStep, setCreatePersonStep] = useState<'data' | 'face' | 'rfid' | 'complete'>('data');
   const [newPersonId, setNewPersonId] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
+  const [showDeletePersonConfirm, setShowDeletePersonConfirm] = useState(false);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
@@ -399,31 +402,75 @@ export default function Home() {
     setRegisterMessage(null);
 
     try {
-      const response = await fetch('/api/employees', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: `${formData.gmailUser}@gmail.com`,
-          nombre: formData.nombre,
-          empresa: formData.empresa
-        })
-      });
-      if (!response.ok) {
+      if (editingPerson) {
+        // Modo edición
+        const response = await fetch(`/api/employees/${editingPerson.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: `${formData.gmailUser}@gmail.com`,
+            nombre: formData.nombre,
+            empresa: formData.empresa
+          })
+        });
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data?.error || 'No se pudo actualizar la persona.');
+        }
         const data = await response.json();
-        throw new Error(data?.error || 'No se pudo crear la persona.');
-      }
+        if (data?.person) {
+          setPersons(prev => prev.map(person => (person.id === data.person.id ? data.person : person)));
+          setSelectedPersonId(data.person.id);
+          setShowCreatePerson(false);
+          setCreatePersonStep('data');
+          setEditingPerson(null);
+          setFormData({ gmailUser: '', nombre: '', empresa: '' });
+        }
+      } else {
+        // Modo creación
+        const response = await fetch('/api/employees', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: `${formData.gmailUser}@gmail.com`,
+            nombre: formData.nombre,
+            empresa: formData.empresa
+          })
+        });
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data?.error || 'No se pudo crear la persona.');
+        }
 
-      const data = await response.json();
-      if (data?.person?.id) {
-        setNewPersonId(data.person.id);
-        setSelectedPersonId(data.person.id);
-        setCreatePersonStep('face');
-      await loadPersons();
+        const data = await response.json();
+        if (data?.person?.id) {
+          setNewPersonId(data.person.id);
+          setSelectedPersonId(data.person.id);
+          setCreatePersonStep('face');
+          await loadPersons();
+        }
       }
     } catch (error: any) {
-      setRegisterMessage(error?.message || 'Error al crear la persona.');
+      setRegisterMessage(error?.message || `Error al ${editingPerson ? 'actualizar' : 'crear'} la persona.`);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeletePerson = async (personId: string) => {
+    try {
+      const response = await fetch(`/api/employees/${personId}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error || 'No se pudo eliminar la persona.');
+      }
+      await loadPersons();
+      setSelectedPersonId(null);
+      setShowDeletePersonConfirm(false);
+    } catch (error: any) {
+      setRegisterMessage(error?.message || 'Error al eliminar la persona.');
     }
   };
 
@@ -729,16 +776,18 @@ export default function Home() {
                 <img
                   src={currentPerson.faceImageUrl}
                   alt={effectiveSession?.user?.name || 'Perfil'}
-                  className="w-8 h-8 rounded-full object-cover"
+                  className="w-8 h-8 rounded-full flex-shrink-0"
+                  style={{ objectFit: 'cover', aspectRatio: '1/1', width: '32px', height: '32px' }}
                 />
               ) : effectiveSession?.user?.image ? (
                 <img
                   src={effectiveSession.user.image}
                   alt={effectiveSession.user.name || 'Perfil'}
-                  className="w-8 h-8 rounded-full object-cover"
+                  className="w-8 h-8 rounded-full flex-shrink-0"
+                  style={{ objectFit: 'cover', aspectRatio: '1/1', width: '32px', height: '32px' }}
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0" style={{ aspectRatio: '1/1' }}>
                   <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                   </svg>
@@ -950,7 +999,7 @@ export default function Home() {
 
               {/* Selected Person Details */}
               {selectedPerson && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Facial Identity */}
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <div className="flex items-center justify-between mb-4">
@@ -1128,6 +1177,58 @@ export default function Home() {
                           ))
                         )}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Opciones */}
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h2 className="text-base font-semibold text-gray-900 mb-4">Opciones</h2>
+                    <div className="space-y-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingPerson(selectedPerson);
+                          setFormData({
+                            gmailUser: selectedPerson.email.replace('@gmail.com', ''),
+                            nombre: selectedPerson.nombre,
+                            empresa: selectedPerson.empresa
+                          });
+                          setShowCreatePerson(true);
+                          setCreatePersonStep('data');
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Editar datos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowDeletePersonConfirm(true)}
+                        className="w-full flex items-center gap-3 px-4 py-2 rounded-lg border border-red-300 text-sm font-medium text-red-700 hover:bg-red-50 transition"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Eliminar persona
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleUpdatePerson(selectedPerson.id, { active: !selectedPerson.active });
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                          selectedPerson.active
+                            ? 'border-yellow-300 text-yellow-700 hover:bg-yellow-50'
+                            : 'border-green-300 text-green-700 hover:bg-green-50'
+                        }`}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={selectedPerson.active ? "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" : "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"} />
+                        </svg>
+                        {selectedPerson.active ? 'Suspender acceso' : 'Activar acceso'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1340,13 +1441,15 @@ export default function Home() {
       {/* Create Person Modal */}
       {showCreatePerson && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+              <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Crear nueva persona</h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  Paso {createPersonStep === 'data' ? '1' : createPersonStep === 'face' ? '2' : '3'} de 3
-                </p>
+                <h3 className="text-lg font-semibold text-gray-900">{editingPerson ? 'Editar persona' : 'Crear nueva persona'}</h3>
+                {!editingPerson && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Paso {createPersonStep === 'data' ? '1' : createPersonStep === 'face' ? '2' : '3'} de 3
+                  </p>
+                )}
               </div>
               <button
                 type="button"
@@ -1425,7 +1528,10 @@ export default function Home() {
 
             {createPersonStep === 'face' && newPersonId && selectedPerson && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">Registrar identidad facial (opcional)</p>
+                <div>
+                  <p className="text-sm font-medium text-gray-900 mb-1">Registrar identidad facial (opcional)</p>
+                  <p className="text-xs text-gray-500">Active la cámara para registrar su rostro</p>
+                </div>
                 <FaceRegistrationPicker
                   onRegister={async (descriptor, imageUrl) => {
                     await handleRegisterFaceWithImage(descriptor, imageUrl);
@@ -1435,6 +1541,13 @@ export default function Home() {
                   hasSavedFace={!!selectedPerson.faceDescriptor}
                 />
                 <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelConfirm(true)}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
+                  >
+                    Cancelar
+                  </button>
                   <button
                     type="button"
                     onClick={() => setCreatePersonStep('rfid')}
@@ -1500,6 +1613,170 @@ export default function Home() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Confirm Modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Confirmar cancelación</h3>
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(false)}
+                className="h-8 w-8 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              ¿Querés cancelar? Los cambios no guardados se perderán.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
+              >
+                Continuar editando
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreatePerson(false);
+                  setCreatePersonStep('data');
+                  setNewPersonId(null);
+                  setFormData({ gmailUser: '', nombre: '', empresa: '' });
+                  setRfidUid('');
+                  setEditingPerson(null);
+                  setShowCancelConfirm(false);
+                }}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Person Confirm Modal */}
+      {showDeletePersonConfirm && selectedPerson && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Eliminar persona</h3>
+              <button
+                type="button"
+                onClick={() => setShowDeletePersonConfirm(false)}
+                className="h-8 w-8 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              ¿Querés eliminar a <strong>{selectedPerson.nombre}</strong>? Esta acción no se puede deshacer y se eliminarán todos los datos asociados (identidad facial, tarjetas RFID, etc.).
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeletePersonConfirm(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeletePerson(selectedPerson.id)}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Confirm Modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Confirmar cancelación</h3>
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(false)}
+                className="h-8 w-8 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              ¿Querés cancelar? Los cambios no guardados se perderán.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
+              >
+                Continuar editando
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreatePerson(false);
+                  setCreatePersonStep('data');
+                  setNewPersonId(null);
+                  setFormData({ gmailUser: '', nombre: '', empresa: '' });
+                  setRfidUid('');
+                  setEditingPerson(null);
+                  setShowCancelConfirm(false);
+                }}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Person Confirm Modal */}
+      {showDeletePersonConfirm && selectedPerson && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Eliminar persona</h3>
+              <button
+                type="button"
+                onClick={() => setShowDeletePersonConfirm(false)}
+                className="h-8 w-8 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              ¿Querés eliminar a <strong>{selectedPerson.nombre}</strong>? Esta acción no se puede deshacer y se eliminarán todos los datos asociados (identidad facial, tarjetas RFID, etc.).
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeletePersonConfirm(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeletePerson(selectedPerson.id)}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
+              >
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}
