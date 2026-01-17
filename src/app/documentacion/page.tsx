@@ -62,6 +62,35 @@ export default function DocumentacionPage() {
 
   const documents = [
     {
+      title: '📘 Guía Completa de Desarrollo',
+      items: [
+        {
+          title: 'Documento técnico completo para continuar el desarrollo',
+          description: 'Guía profesional dirigida a otra IA o desarrollador para entender, continuar y mejorar el sistema Accounts. Incluye objetivo, arquitectura, funcionalidades, integraciones, caso de uso de caja de proveeduría, y guía de producción.',
+          details: [
+            '📄 Archivo: guia-completa-desarrollo.md',
+            '📋 Contenido:',
+            '  • Objetivo y visión del producto',
+            '  • Contexto y casos de uso',
+            '  • Arquitectura técnica completa',
+            '  • Funcionalidades implementadas',
+            '  • Integración con Remitero y Recibos',
+            '  • Caso de uso: Caja de proveeduría del camping',
+            '  • Flujo técnico detallado con código',
+            '  • Guía de producción (env vars, deploy, seguridad)',
+            '  • Roadmap y mejoras pendientes',
+            '  • Información para continuación del desarrollo',
+            '',
+            '🎯 Este documento está diseñado para:',
+            '  • Otra IA que deba continuar el proyecto',
+            '  • Desarrolladores nuevos en el equipo',
+            '  • Documentación profesional para producción',
+            '  • Referencia técnica completa del sistema'
+          ]
+        }
+      ]
+    },
+    {
       title: 'Puntos a completar (12)',
       items: [
         {
