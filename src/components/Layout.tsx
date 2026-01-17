@@ -123,8 +123,8 @@ export default function Layout({
                 <img
                   src={effectiveSession.user.image}
                   alt={effectiveSession.user.name || 'Perfil'}
-                  className={`${sidebarCollapsed ? 'w-8 h-8' : 'w-8 h-8'} rounded-full object-cover flex-shrink-0`}
-                  style={{ objectFit: 'cover', aspectRatio: '1/1' }}
+                  className="w-8 h-8 rounded-full flex-shrink-0"
+                  style={{ objectFit: 'cover', aspectRatio: '1/1', width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' }}
                 />
               ) : (
                 <div className={`${sidebarCollapsed ? 'w-8 h-8' : 'w-8 h-8'} rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0`}>
