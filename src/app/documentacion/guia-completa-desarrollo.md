@@ -6,10 +6,11 @@
 2. [Contexto y Casos de Uso](#contexto-y-casos-de-uso)
 3. [Arquitectura Técnica](#arquitectura-técnica)
 4. [Funcionalidades Implementadas](#funcionalidades-implementadas)
-5. [Integración con Sistemas Externos](#integración-con-sistemas-externos)
-6. [Caso de Uso: Caja de Proveeduría del Camping](#caso-de-uso-caja-de-proveeduría-del-camping)
-7. [Guía de Producción](#guía-de-producción)
-8. [Roadmap y Mejoras Pendientes](#roadmap-y-mejoras-pendientes)
+5. [Documentación de APIs](#documentación-de-apis)
+6. [Integración con Sistemas Externos](#integración-con-sistemas-externos)
+7. [Caso de Uso: Caja de Proveeduría del Camping](#caso-de-uso-caja-de-proveeduría-del-camping)
+8. [Guía de Producción](#guía-de-producción)
+9. [Roadmap y Mejoras Pendientes](#roadmap-y-mejoras-pendientes)
 
 ---
 
@@ -351,6 +352,684 @@ window.AccountsLoginBeta01 = {
 - Grid adaptativo (1 columna móvil, 3 columnas desktop)
 - Inputs y botones se apilan en pantallas pequeñas
 - Breakpoints: `sm:` (640px), `lg:` (1024px)
+
+---
+
+## 📡 Documentación de APIs
+
+### Base URL
+```
+Producción: https://accounts.puntoindigo.com
+Desarrollo: http://localhost:3000
+```
+
+### Autenticación
+
+La mayoría de las APIs requieren autenticación mediante sesión de NextAuth. Las excepciones se indican en cada endpoint.
+
+**Headers requeridos:**
+```http
+Cookie: next-auth.session-token=...
+```
+
+### Endpoints de Personas (Employees)
+
+#### `GET /api/employees`
+Lista todas las personas registradas.
+
+**Autenticación:** Requerida
+
+**Respuesta exitosa (200):**
+```json
+{
+  "persons": [
+    {
+      "id": "uuid",
+      "email": "usuario@example.com",
+      "nombre": "Juan Pérez",
+      "empresa": "Empresa S.A.",
+      "faceDescriptor": [0.123, -0.456, ...],
+      "faceImageUrl": "https://...",
+      "active": true,
+      "isAdmin": false,
+      "createdAt": "2025-01-15T10:30:00Z",
+      "updatedAt": "2025-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+**Errores:**
+- `500`: Error cargando personas
+
+---
+
+#### `POST /api/employees`
+Crea una nueva persona.
+
+**Autenticación:** Requerida
+
+**Body:**
+```json
+{
+  "email": "usuario@example.com",
+  "nombre": "Juan Pérez",
+  "empresa": "Empresa S.A."
+}
+```
+
+**Validaciones:**
+- `email`: Requerido, debe contener "@"
+- `nombre`: Requerido
+- `empresa`: Requerido
+
+**Respuesta exitosa (201):**
+```json
+{
+  "person": {
+    "id": "uuid",
+    "email": "usuario@example.com",
+    "nombre": "Juan Pérez",
+    "empresa": "Empresa S.A.",
+    "active": true,
+    "isAdmin": false,
+    "createdAt": "2025-01-15T10:30:00Z",
+    "updatedAt": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+**Errores:**
+- `400`: Campos requeridos faltantes o email inválido
+- `409`: Email duplicado
+- `500`: Error creando persona
+
+---
+
+#### `GET /api/employees/[id]`
+Obtiene una persona por ID.
+
+**Autenticación:** Requerida
+
+**Parámetros:**
+- `id` (path): UUID de la persona
+
+**Respuesta exitosa (200):**
+```json
+{
+  "person": {
+    "id": "uuid",
+    "email": "usuario@example.com",
+    "nombre": "Juan Pérez",
+    "empresa": "Empresa S.A.",
+    "faceDescriptor": [0.123, -0.456, ...],
+    "faceImageUrl": "https://...",
+    "active": true,
+    "isAdmin": false,
+    "createdAt": "2025-01-15T10:30:00Z",
+    "updatedAt": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+**Errores:**
+- `404`: Persona no encontrada
+- `500`: Error obteniendo persona
+
+---
+
+#### `PATCH /api/employees/[id]`
+Actualiza una persona.
+
+**Autenticación:** Requerida
+
+**Parámetros:**
+- `id` (path): UUID de la persona
+
+**Body (todos los campos opcionales):**
+```json
+{
+  "email": "nuevo@example.com",
+  "nombre": "Juan Carlos Pérez",
+  "empresa": "Nueva Empresa S.A.",
+  "active": false,
+  "isAdmin": true
+}
+```
+
+**Respuesta exitosa (200):**
+```json
+{
+  "person": {
+    "id": "uuid",
+    "email": "nuevo@example.com",
+    "nombre": "Juan Carlos Pérez",
+    "empresa": "Nueva Empresa S.A.",
+    "active": false,
+    "isAdmin": true,
+    "updatedAt": "2025-01-15T11:00:00Z"
+  }
+}
+```
+
+**Errores:**
+- `404`: Persona no encontrada
+- `500`: Error actualizando persona
+
+---
+
+#### `DELETE /api/employees/[id]`
+Elimina una persona y todos sus datos asociados (cascade delete).
+
+**Autenticación:** Requerida
+
+**Parámetros:**
+- `id` (path): UUID de la persona
+
+**Respuesta exitosa (200):**
+```json
+{
+  "ok": true
+}
+```
+
+**Errores:**
+- `404`: Persona no encontrada
+- `500`: Error eliminando persona
+
+---
+
+### Endpoints de Reconocimiento Facial (Face)
+
+#### `POST /api/face/register`
+Registra un descriptor facial para una persona.
+
+**Autenticación:** Requerida
+
+**Body:**
+```json
+{
+  "personId": "uuid",
+  "descriptor": [0.123, -0.456, 0.789, ...], // Array de 128 números
+  "imageUrl": "https://..." // Opcional
+}
+```
+
+**Nota:** También acepta `employeeId` como alias de `personId`.
+
+**Validaciones:**
+- `personId`: Requerido
+- `descriptor`: Requerido, debe ser array no vacío
+
+**Respuesta exitosa (200):**
+```json
+{
+  "person": {
+    "id": "uuid",
+    "faceDescriptor": [0.123, -0.456, ...],
+    "faceImageUrl": "https://...",
+    "updatedAt": "2025-01-15T11:00:00Z"
+  }
+}
+```
+
+**Errores:**
+- `400`: Campos requeridos faltantes o solicitud inválida
+- `404`: Persona no encontrada
+- `500`: Error registrando rostro
+
+---
+
+#### `POST /api/face/verify`
+Verifica un descriptor facial contra todas las personas registradas.
+
+**Autenticación:** No requerida (puede usarse para login)
+
+**Body:**
+```json
+{
+  "descriptor": [0.123, -0.456, 0.789, ...] // Array de 128 números
+}
+```
+
+**Respuesta exitosa (200):**
+```json
+{
+  "found": true,
+  "match": {
+    "person": {
+      "id": "uuid",
+      "email": "usuario@example.com",
+      "nombre": "Juan Pérez",
+      "empresa": "Empresa S.A.",
+      "active": true
+    },
+    "distance": 0.35,
+    "confidence": 0.65
+  }
+}
+```
+
+**Si no se encuentra (200):**
+```json
+{
+  "found": false
+}
+```
+
+**Errores:**
+- `400`: Descriptor requerido
+- `500`: Error verificando rostro
+
+---
+
+#### `POST /api/face/remove`
+Elimina el descriptor facial de una persona.
+
+**Autenticación:** Requerida
+
+**Body:**
+```json
+{
+  "personId": "uuid"
+}
+```
+
+**Nota:** También acepta `employeeId` como alias de `personId`.
+
+**Respuesta exitosa (200):**
+```json
+{
+  "person": {
+    "id": "uuid",
+    "faceDescriptor": null,
+    "faceImageUrl": null,
+    "updatedAt": "2025-01-15T11:00:00Z"
+  }
+}
+```
+
+**Errores:**
+- `400`: personId requerido
+- `404`: Persona no encontrada
+- `500`: Error removiendo rostro
+
+---
+
+### Endpoints de RFID
+
+#### `POST /api/rfid/verify`
+Verifica si un UID de tarjeta RFID está asociado a una persona activa.
+
+**Autenticación:** No requerida (puede usarse para login)
+
+**Body:**
+```json
+{
+  "uid": "A1B2C3D4"
+}
+```
+
+**Respuesta exitosa (200) - Tarjeta encontrada:**
+```json
+{
+  "found": true,
+  "uid": "A1B2C3D4",
+  "card": {
+    "id": "uuid",
+    "personId": "uuid",
+    "uid": "A1B2C3D4",
+    "active": true,
+    "createdAt": "2025-01-15T10:00:00Z"
+  },
+  "person": {
+    "id": "uuid",
+    "email": "usuario@example.com",
+    "nombre": "Juan Pérez",
+    "empresa": "Empresa S.A.",
+    "active": true
+  }
+}
+```
+
+**Respuesta (200) - Tarjeta no encontrada:**
+```json
+{
+  "found": false,
+  "uid": "A1B2C3D4"
+}
+```
+
+**Respuesta (200) - Persona inactiva:**
+```json
+{
+  "found": false,
+  "uid": "A1B2C3D4",
+  "reason": "inactive"
+}
+```
+
+**Errores:**
+- `400`: UID requerido
+- `500`: Error verificando tarjeta
+
+---
+
+#### `POST /api/rfid/associate`
+Asocia una tarjeta RFID a una persona.
+
+**Autenticación:** Requerida
+
+**Body:**
+```json
+{
+  "personId": "uuid",
+  "uid": "A1B2C3D4"
+}
+```
+
+**Validaciones:**
+- `personId`: Requerido
+- `uid`: Requerido, debe ser único
+
+**Respuesta exitosa (200):**
+```json
+{
+  "card": {
+    "id": "uuid",
+    "personId": "uuid",
+    "uid": "A1B2C3D4",
+    "active": true,
+    "createdAt": "2025-01-15T11:00:00Z"
+  }
+}
+```
+
+**Errores:**
+- `400`: personId y uid requeridos
+- `404`: Persona no encontrada
+- `409`: UID ya asociado a otra persona
+- `500`: Error asociando tarjeta
+
+---
+
+#### `GET /api/rfid/person/[id]`
+Lista todas las tarjetas RFID asociadas a una persona.
+
+**Autenticación:** Requerida
+
+**Parámetros:**
+- `id` (path): UUID de la persona
+
+**Respuesta exitosa (200):**
+```json
+{
+  "cards": [
+    {
+      "id": "uuid",
+      "personId": "uuid",
+      "uid": "A1B2C3D4",
+      "active": true,
+      "createdAt": "2025-01-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+**Errores:**
+- `400`: personId requerido
+- `500`: Error listando tarjetas
+
+---
+
+#### `PATCH /api/rfid/[id]`
+Activa o desactiva una tarjeta RFID.
+
+**Autenticación:** Requerida
+
+**Parámetros:**
+- `id` (path): UUID de la tarjeta
+
+**Body:**
+```json
+{
+  "active": true
+}
+```
+
+**Respuesta exitosa (200):**
+```json
+{
+  "card": {
+    "id": "uuid",
+    "personId": "uuid",
+    "uid": "A1B2C3D4",
+    "active": true,
+    "createdAt": "2025-01-15T10:00:00Z"
+  }
+}
+```
+
+**Errores:**
+- `400`: cardId requerido o no se pudo actualizar
+- `500`: Error actualizando tarjeta
+
+---
+
+#### `DELETE /api/rfid/[id]`
+Elimina una tarjeta RFID.
+
+**Autenticación:** Requerida
+
+**Parámetros:**
+- `id` (path): UUID de la tarjeta
+
+**Respuesta exitosa (200):**
+```json
+{
+  "deleted": true
+}
+```
+
+**Errores:**
+- `400`: cardId requerido
+- `500`: Error eliminando tarjeta
+
+---
+
+#### `GET /api/rfid/status`
+Verifica si hay tarjetas RFID registradas en el sistema.
+
+**Autenticación:** Requerida
+
+**Respuesta exitosa (200):**
+```json
+{
+  "available": true
+}
+```
+
+**Errores:**
+- `500`: Error consultando RFID
+
+---
+
+### Endpoints de Actividad (Logins)
+
+#### `GET /api/logins`
+Lista eventos de autenticación (histórico de actividad).
+
+**Autenticación:** Requerida
+
+**Query Parameters:**
+- `status` (opcional): `"success"` | `"failed"` - Filtra por estado
+
+**Ejemplo:**
+```
+GET /api/logins?status=success
+```
+
+**Respuesta exitosa (200):**
+```json
+{
+  "events": [
+    {
+      "id": "uuid",
+      "personId": "uuid",
+      "email": "usuario@example.com",
+      "provider": "google",
+      "status": "success",
+      "reason": null,
+      "ip": "192.168.1.1",
+      "city": "Buenos Aires",
+      "country": "AR",
+      "userAgent": "Mozilla/5.0...",
+      "createdAt": "2025-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+**Errores:**
+- `500`: Error cargando actividad
+
+---
+
+### Endpoints de Embed (Widget)
+
+#### `GET /api/embed/token`
+Genera un token JWT para autenticación embebible.
+
+**Autenticación:** Requerida (sesión de NextAuth)
+
+**Descripción:** Este endpoint genera un token firmado que puede ser usado por aplicaciones cliente para autenticar al usuario sin exponer credenciales.
+
+**Respuesta exitosa (200):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "email": "usuario@example.com",
+    "name": "Juan Pérez",
+    "isAdmin": false,
+    "iat": 1705312200,
+    "exp": 1705312500
+  }
+}
+```
+
+**Estructura del Token:**
+El token es un JWT-like con formato `body.signature`:
+- **Body**: Base64URL del payload JSON
+- **Signature**: HMAC-SHA256 del body usando `ACCOUNTS_EMBED_SECRET`
+- **Expiración**: 5 minutos desde la emisión
+
+**Payload del Token:**
+```json
+{
+  "email": "usuario@example.com",
+  "name": "Juan Pérez",
+  "isAdmin": false,
+  "iat": 1705312200,
+  "exp": 1705312500
+}
+```
+
+**Errores:**
+- `401`: No autenticado
+- `500`: `missing_secret` - Variable `ACCOUNTS_EMBED_SECRET` no configurada
+
+---
+
+### NextAuth Endpoints
+
+#### `GET /api/auth/signin`
+Página de inicio de sesión de NextAuth.
+
+#### `GET /api/auth/callback/[provider]`
+Callback de OAuth para providers (Google, etc.).
+
+#### `POST /api/auth/callback/credentials`
+Callback para autenticación por credenciales (Face, RFID).
+
+**Body:**
+```json
+{
+  "provider": "face" | "rfid",
+  "descriptor": "[...]" // Solo para face
+  "uid": "A1B2C3D4" // Solo para rfid
+}
+```
+
+---
+
+### Códigos de Estado HTTP
+
+- `200`: Éxito
+- `201`: Creado exitosamente
+- `400`: Solicitud inválida (campos faltantes, formato incorrecto)
+- `401`: No autenticado
+- `404`: Recurso no encontrado
+- `409`: Conflicto (recurso duplicado)
+- `500`: Error interno del servidor
+
+---
+
+### Ejemplos de Uso
+
+#### Ejemplo 1: Crear persona y registrar rostro
+```typescript
+// 1. Crear persona
+const createResponse = await fetch('/api/employees', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'juan@example.com',
+    nombre: 'Juan Pérez',
+    empresa: 'Empresa S.A.'
+  })
+});
+const { person } = await createResponse.json();
+
+// 2. Registrar descriptor facial
+const faceResponse = await fetch('/api/face/register', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    personId: person.id,
+    descriptor: [0.123, -0.456, ...], // 128 números
+    imageUrl: 'https://...'
+  })
+});
+```
+
+#### Ejemplo 2: Verificar identidad con RFID
+```typescript
+const response = await fetch('/api/rfid/verify', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ uid: 'A1B2C3D4' })
+});
+
+const data = await response.json();
+if (data.found && data.person.active) {
+  console.log('Usuario autorizado:', data.person);
+} else {
+  console.log('Acceso denegado');
+}
+```
+
+#### Ejemplo 3: Obtener histórico de actividad
+```typescript
+// Todos los eventos
+const allEvents = await fetch('/api/logins').then(r => r.json());
+
+// Solo exitosos
+const successEvents = await fetch('/api/logins?status=success').then(r => r.json());
+
+// Solo fallidos
+const failedEvents = await fetch('/api/logins?status=failed').then(r => r.json());
+```
 
 ---
 
