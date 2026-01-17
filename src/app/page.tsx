@@ -84,7 +84,7 @@ function LoginGate({
   const rfidInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const error = searchParams.get('error');
+    const error = searchParams?.get('error');
     if (error === 'AccessDenied') {
       setAuthMessage('Acceso denegado. Verificá que tu cuenta esté autorizada.');
     }
