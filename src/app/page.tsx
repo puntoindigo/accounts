@@ -130,8 +130,8 @@ function LoginGate({
 
         <div className="space-y-3">
           <div className="flex items-center gap-2 border-b border-gray-200">
-            <button
-              type="button"
+        <button
+          type="button"
               onClick={() => setLoginMethod('google')}
               className={`flex-1 py-3 text-sm font-medium transition ${
                 loginMethod === 'google'
@@ -151,7 +151,7 @@ function LoginGate({
               }`}
             >
               Facial
-            </button>
+        </button>
             <button
               type="button"
               onClick={() => setLoginMethod('rfid')}
@@ -163,7 +163,7 @@ function LoginGate({
             >
               RFID
             </button>
-          </div>
+        </div>
 
           <div className="pt-4">
             {loginMethod === 'google' && (
@@ -184,15 +184,15 @@ function LoginGate({
 
             {loginMethod === 'face' && (
               <div className="space-y-4">
-                <FaceRecognitionAutoCapture
-                  onDescriptorCaptured={onFaceLogin}
+          <FaceRecognitionAutoCapture
+            onDescriptorCaptured={onFaceLogin}
                   defaultExpanded={true}
                   title=""
                   description=""
                   actionLabel=""
                   noticeLabel="Verificando identidad..."
-                  autoCaptureDisabled={faceLoginLocked}
-                />
+            autoCaptureDisabled={faceLoginLocked}
+          />
               </div>
             )}
 
@@ -286,6 +286,8 @@ export default function Home() {
   const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({ gmailUser: '', nombre: '', empresa: '' });
   const [showCreatePerson, setShowCreatePerson] = useState(false);
+  const [createPersonStep, setCreatePersonStep] = useState<'data' | 'face' | 'rfid' | 'complete'>('data');
+  const [newPersonId, setNewPersonId] = useState<string | null>(null);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
@@ -412,14 +414,11 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setFormData({ gmailUser: '', nombre: '', empresa: '' });
-      setShowCreatePerson(false);
-      setShowPersons(true);
-      await loadPersons();
-      // Seleccionar automáticamente la persona recién creada
       if (data?.person?.id) {
+        setNewPersonId(data.person.id);
         setSelectedPersonId(data.person.id);
-        setFaceMode('register'); // Cambiar a modo registro para facilitar el registro de identidad facial
+        setCreatePersonStep('face');
+      await loadPersons();
       }
     } catch (error: any) {
       setRegisterMessage(error?.message || 'Error al crear la persona.');
@@ -462,10 +461,10 @@ export default function Home() {
       body: JSON.stringify({ personId: selectedPerson.id })
     });
     if (response.ok) {
-      const data = await response.json();
+    const data = await response.json();
       if (data?.person) {
         setPersons(prev => prev.map(person => (person.id === data.person.id ? data.person : person)));
-      }
+    }
     }
   };
 
@@ -565,12 +564,12 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ personId: selectedPerson.id, uid: rfidUid.trim() })
-      });
-      const data = await response.json();
-      if (!response.ok) {
+    });
+    const data = await response.json();
+    if (!response.ok) {
         setRfidMessage(data?.error || 'No se pudo asociar la tarjeta.');
-        return;
-      }
+      return;
+    }
       setRfidUid('');
       await loadRfidCards(selectedPerson.id);
     } catch {
@@ -656,7 +655,7 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
                 <span className="text-white font-semibold text-sm">A</span>
-              </div>
+          </div>
               <div>
                 <h1 className="text-sm font-semibold text-gray-900">Accounts</h1>
                 <p className="text-xs text-gray-500">Identidad Biométrica</p>
@@ -755,19 +754,19 @@ export default function Home() {
                   )}
                   {isLocalhost && !session && (
                     <p className="text-[10px] text-orange-500">Localhost</p>
-                  )}
-                </div>
+                )}
+              </div>
               )}
             </button>
             {showSessionActions && (
               <div className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden z-50">
-                <button
-                  type="button"
+              <button
+                type="button"
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
                   onClick={() => setShowSessionActions(false)}
-                >
+              >
                   Configuración
-                </button>
+              </button>
                 {isAdmin && (
                   <Link
                     href="/documentacion"
@@ -778,8 +777,8 @@ export default function Home() {
                   </Link>
                 )}
                 <div className="border-t border-gray-200" />
-                <button
-                  type="button"
+              <button
+                type="button"
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
                   onClick={() => {
                     setShowSessionActions(false);
@@ -788,7 +787,7 @@ export default function Home() {
                 >
                   <span>Salir</span>
                   <span className="text-xs text-gray-400">(S)</span>
-                </button>
+              </button>
               </div>
             )}
           </div>
@@ -796,16 +795,16 @@ export default function Home() {
 
         {/* Collapse Button */}
         <div className="border-t border-gray-200 p-2">
-          <button
-            type="button"
+              <button
+                type="button"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition"
-          >
+              >
             <svg className={`w-4 h-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
             </svg>
-          </button>
-        </div>
+              </button>
+            </div>
       </aside>
 
       {/* Main Content */}
@@ -841,51 +840,51 @@ export default function Home() {
           {currentView === 'persons' ? (
             <div className="max-w-6xl mx-auto space-y-6">
               {/* Create Person Form */}
-              {showCreatePerson && (
+          {showCreatePerson && (
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
                   <h2 className="text-base font-semibold text-gray-900 mb-4">Crear nueva persona</h2>
                   <form className="space-y-4" onSubmit={handleCreatePerson}>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Gmail</label>
                       <div className="flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-transparent bg-white">
-                        <input
-                          value={formData.gmailUser}
-                          onChange={(event) => {
-                            const raw = event.target.value || '';
-                            const localPart = raw.replace(/\s+/g, '').replace(/@/g, '').trim();
-                            setFormData(prev => ({ ...prev, gmailUser: localPart }));
-                          }}
-                          className="flex-1 outline-none bg-transparent"
-                          type="text"
-                          placeholder="usuario"
-                        />
+                    <input
+                      value={formData.gmailUser}
+                      onChange={(event) => {
+                        const raw = event.target.value || '';
+                        const localPart = raw.replace(/\s+/g, '').replace(/@/g, '').trim();
+                        setFormData(prev => ({ ...prev, gmailUser: localPart }));
+                      }}
+                      className="flex-1 outline-none bg-transparent"
+                      type="text"
+                      placeholder="usuario"
+                    />
                         <span className="text-gray-400">@gmail.com</span>
-                      </div>
-                    </div>
+                  </div>
+                </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre</label>
-                      <input
-                        value={formData.nombre}
-                        onChange={(event) => setFormData(prev => ({ ...prev, nombre: event.target.value }))}
+                  <input
+                    value={formData.nombre}
+                    onChange={(event) => setFormData(prev => ({ ...prev, nombre: event.target.value }))}
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-                      />
-                    </div>
+                  />
+                </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Empresa</label>
-                      <input
-                        value={formData.empresa}
-                        onChange={(event) => setFormData(prev => ({ ...prev, empresa: event.target.value }))}
+                  <input
+                    value={formData.empresa}
+                    onChange={(event) => setFormData(prev => ({ ...prev, empresa: event.target.value }))}
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-                      />
-                    </div>
+                  />
+                </div>
                     <div className="flex items-center gap-3">
-                      <button
-                        type="submit"
-                        disabled={creating}
+                <button
+                  type="submit"
+                  disabled={creating}
                         className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                      >
-                        {creating ? 'Creando...' : 'Crear persona'}
-                      </button>
+                >
+                  {creating ? 'Creando...' : 'Crear persona'}
+                </button>
                       <button
                         type="button"
                         onClick={() => setShowCreatePerson(false)}
@@ -897,62 +896,67 @@ export default function Home() {
                     {registerMessage && (
                       <p className="text-sm text-red-600">{registerMessage}</p>
                     )}
-                  </form>
-                </div>
-              )}
+              </form>
+            </div>
+          )}
 
               {/* Persons List */}
-              {showPersons && (
+          {showPersons && (
                 <div className="bg-white rounded-lg border border-gray-200">
                   <div className="p-4 border-b border-gray-200">
                     <h2 className="text-base font-semibold text-gray-900">Personas registradas</h2>
                   </div>
                   <div className="p-4">
-                    {loading ? (
+              {loading ? (
                       <p className="text-sm text-gray-500">Cargando personas...</p>
-                    ) : error ? (
-                      <p className="text-sm text-red-600">{error}</p>
-                    ) : persons.length === 0 ? (
+              ) : error ? (
+                <p className="text-sm text-red-600">{error}</p>
+              ) : persons.length === 0 ? (
                       <p className="text-sm text-gray-500">No hay personas registradas.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {persons.slice(0, personsVisibleCount).map(person => (
-                          <div
-                            key={person.id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              setSelectedPersonId(person.id);
-                              setRegisterMessage(null);
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key === 'Enter' || event.key === ' ') {
-                                event.preventDefault();
-                                setSelectedPersonId(person.id);
-                                setRegisterMessage(null);
+              ) : (
+                <div className="space-y-2">
+                  {persons.slice(0, personsVisibleCount).map(person => (
+                    <div
+                      key={person.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                              // Si ya está seleccionada, deseleccionar
+                              if (selectedPersonId === person.id) {
+                                setSelectedPersonId(null);
+                              } else {
+                        setSelectedPersonId(person.id);
                               }
-                            }}
+                        setRegisterMessage(null);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedPersonId(person.id);
+                          setRegisterMessage(null);
+                        }
+                      }}
                             className={`w-full text-left rounded-lg border px-4 py-3 cursor-pointer transition ${
-                              selectedPersonId === person.id
+                        selectedPersonId === person.id
                                 ? 'border-gray-900 bg-gray-50'
                                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                             } ${person.active ? '' : 'opacity-60'}`}
                           >
                             <div className="flex items-center justify-between gap-4">
                               <div className="flex items-center gap-3 flex-1 min-w-0">
-                                {person.faceImageUrl ? (
-                                  <img
-                                    src={person.faceImageUrl}
-                                    alt={`Rostro de ${person.nombre}`}
+                            {person.faceImageUrl ? (
+                              <img
+                                src={person.faceImageUrl}
+                                alt={`Rostro de ${person.nombre}`}
                                     className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                                  />
-                                ) : (
+                              />
+                            ) : (
                                   <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
                                     <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                                       <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                    </svg>
-                                  </div>
-                                )}
+                                </svg>
+                              </div>
+                            )}
                                 <div className="flex-1 min-w-0">
                                   <div className="font-medium text-gray-900 truncate">{person.nombre}</div>
                                   <div className="text-xs text-gray-500 truncate">{person.empresa}</div>
@@ -960,40 +964,49 @@ export default function Home() {
                                   {!person.faceDescriptor?.length && (
                                     <div className="text-xs text-gray-400 mt-1">Sin rostro registrado</div>
                                   )}
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleUpdatePerson(person.id, { active: !person.active });
-                                }}
-                                className={`inline-flex items-center gap-2 text-xs px-2.5 py-1 rounded-full border flex-shrink-0 ${
-                                  person.active
-                                    ? 'border-green-200 bg-green-50 text-green-700'
-                                    : 'border-gray-300 bg-gray-100 text-gray-500'
-                                }`}
-                              >
-                                <span className={`inline-block h-2 w-2 rounded-full ${person.active ? 'bg-green-500' : 'bg-gray-400'}`} />
-                                {person.active ? 'Activo' : 'Inactivo'}
-                              </button>
                             </div>
                           </div>
-                        ))}
-                        {personsVisibleCount < persons.length && (
+                              <div className="relative group">
                           <button
                             type="button"
-                            onClick={() => setPersonsVisibleCount(prev => Math.min(prev + PERSONS_PAGE_SIZE, persons.length))}
-                            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleUpdatePerson(person.id, { active: !person.active });
+                            }}
+                                  className={`inline-flex items-center gap-2 text-xs px-2.5 py-1 rounded-full border flex-shrink-0 cursor-pointer ${
+                              person.active
+                                      ? 'border-green-200 bg-green-50 text-green-700'
+                                      : 'border-gray-300 bg-gray-100 text-gray-500'
+                            }`}
+                                  title={person.active ? 'Desactivar' : 'Reactivar'}
                           >
-                            Cargar más
+                                  <span className={`inline-block h-2 w-2 rounded-full ${person.active ? 'bg-green-500' : 'bg-gray-400'}`} />
+                                  {person.active ? 'Activo' : 'Inactivo'}
                           </button>
-                        )}
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                  {person.active ? 'Desactivar' : 'Reactivar'}
+                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                                    <div className="border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                                </div>
+                              </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ))}
+                  {personsVisibleCount < persons.length && (
+                    <button
+                      type="button"
+                      onClick={() => setPersonsVisibleCount(prev => Math.min(prev + PERSONS_PAGE_SIZE, persons.length))}
+                            className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      Cargar más
+                    </button>
+                  )}
                 </div>
               )}
+                  </div>
+          </div>
+          )}
 
               {/* Selected Person Details */}
               {selectedPerson && (
@@ -1004,96 +1017,96 @@ export default function Home() {
                       <h2 className="text-base font-semibold text-gray-900">Identidad facial</h2>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-medium ${faceMode === 'verify' ? 'text-gray-900' : 'text-gray-400'}`}>
-                          Verificar
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setFaceMode(faceMode === 'verify' ? 'register' : 'verify')}
+                  Verificar
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFaceMode(faceMode === 'verify' ? 'register' : 'verify')}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
                             faceMode === 'register' ? 'bg-gray-900' : 'bg-gray-300'
-                          }`}
-                        >
-                          <span
+                  }`}
+                >
+                  <span
                             className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
                               faceMode === 'register' ? 'translate-x-6' : 'translate-x-1'
-                            }`}
-                          />
-                        </button>
+                    }`}
+                  />
+                </button>
                         <span className={`text-xs font-medium ${faceMode === 'register' ? 'text-gray-900' : 'text-gray-400'}`}>
-                          Registrar
-                        </span>
-                      </div>
-                    </div>
+                  Registrar
+                </span>
+              </div>
+            </div>
 
-                    {faceMode === 'register' ? (
+            {faceMode === 'register' ? (
                       <div className="space-y-4">
                         <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-                          {selectedPerson.faceImageUrl ? (
-                            <img
-                              src={selectedPerson.faceImageUrl}
-                              alt={`Rostro de ${selectedPerson.nombre}`}
+                      {selectedPerson.faceImageUrl ? (
+                        <img
+                          src={selectedPerson.faceImageUrl}
+                          alt={`Rostro de ${selectedPerson.nombre}`}
                               className="w-12 h-12 rounded-full object-cover"
-                            />
-                          ) : (
+                        />
+                      ) : (
                             <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
                               <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                              </svg>
-                            </div>
-                          )}
-                          <div>
+                          </svg>
+                        </div>
+                      )}
+                      <div>
                             <p className="text-sm font-medium text-gray-900">{selectedPerson.nombre}</p>
                             <p className="text-xs text-gray-500">{selectedPerson.email}</p>
-                          </div>
-                        </div>
-                        {showRegisterCapture && (
-                          <FaceRegistrationPicker
-                            onRegister={handleRegisterFaceWithImage}
-                            onRemove={handleRemoveFace}
-                            hasSavedFace={!!selectedPerson.faceDescriptor}
-                          />
-                        )}
-                        {registerMessage && (
-                          <p className="text-sm text-gray-600">{registerMessage}</p>
-                        )}
                       </div>
-                    ) : (
+                    </div>
+                {showRegisterCapture && (
+                  <FaceRegistrationPicker
+                    onRegister={handleRegisterFaceWithImage}
+                    onRemove={handleRemoveFace}
+                    hasSavedFace={!!selectedPerson.faceDescriptor}
+                  />
+                )}
+                {registerMessage && (
+                          <p className="text-sm text-gray-600">{registerMessage}</p>
+                )}
+              </div>
+            ) : (
                       <div className="space-y-4">
-                        <FaceRecognitionAutoCapture
-                          onDescriptorCaptured={handleVerifyFace}
-                          defaultExpanded={false}
+                <FaceRecognitionAutoCapture
+                  onDescriptorCaptured={handleVerifyFace}
+                  defaultExpanded={false}
                           title=""
                           description=""
                           actionLabel=""
-                          noticeLabel="Verificando identidad..."
-                          autoCaptureDisabled={!!verificationResult}
-                        />
-                        {verifyMessage && (
+                  noticeLabel="Verificando identidad..."
+                  autoCaptureDisabled={!!verificationResult}
+                />
+                {verifyMessage && (
                           <p className="text-sm text-gray-600">{verifyMessage}</p>
-                        )}
-                        {verificationResult && (
+                )}
+                {verificationResult && (
                           <div className="relative rounded-lg border border-green-200 bg-green-50 p-4">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setVerificationResult(null);
-                                setVerifyMessage(null);
-                              }}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVerificationResult(null);
+                        setVerifyMessage(null);
+                      }}
                               className="absolute top-2 right-2 h-6 w-6 rounded-full bg-green-100 text-green-700 text-xs flex items-center justify-center hover:bg-green-200"
-                            >
-                              ✕
-                            </button>
+                    >
+                      ✕
+                    </button>
                             <p className="font-medium text-gray-900">{verificationResult.nombre}</p>
                             <p className="text-sm text-gray-600">
-                              {verificationResult.email} · {verificationResult.empresa}
-                            </p>
+                      {verificationResult.email} · {verificationResult.empresa}
+                    </p>
                             <p className="text-xs text-gray-500 mt-1">
-                              Confianza: {verificationResult.confidence}% (distancia {verificationResult.distance.toFixed(3)})
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      Confianza: {verificationResult.confidence}% (distancia {verificationResult.distance.toFixed(3)})
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
                   </div>
 
                   {/* RFID */}
@@ -1148,8 +1161,8 @@ export default function Home() {
                                 </p>
                               </div>
                               <div className="flex items-center gap-3">
-                                <button
-                                  type="button"
+              <button
+                type="button"
                                   onClick={() => handleToggleRfid(card.id, !card.active)}
                                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
                                     card.active ? 'bg-gray-900' : 'bg-gray-300'
@@ -1160,7 +1173,7 @@ export default function Home() {
                                       card.active ? 'translate-x-6' : 'translate-x-1'
                                     }`}
                                   />
-                                </button>
+              </button>
                                 {!card.active && (
                                   <button
                                     type="button"
@@ -1170,8 +1183,8 @@ export default function Home() {
                                     Eliminar
                                   </button>
                                 )}
-                              </div>
-                            </div>
+            </div>
+          </div>
                           ))
                         )}
                       </div>
@@ -1197,51 +1210,51 @@ export default function Home() {
                 <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                   <h2 className="text-base font-semibold text-gray-900">Histórico de actividad</h2>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setActivityFilter('all')}
+                <button
+                  type="button"
+                  onClick={() => setActivityFilter('all')}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                         activityFilter === 'all'
                           ? 'bg-gray-900 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
-                    >
-                      Todos
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActivityFilter('success')}
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivityFilter('success')}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                         activityFilter === 'success'
                           ? 'bg-green-600 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
-                    >
-                      Exitosos
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActivityFilter('failed')}
+                >
+                  Exitosos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivityFilter('failed')}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                         activityFilter === 'failed'
                           ? 'bg-red-600 text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
-                    >
-                      Fallidos
-                    </button>
-                  </div>
+                >
+                  Fallidos
+                </button>
+              </div>
                 </div>
                 <div className="p-4">
-                  {loginLoading ? (
+              {loginLoading ? (
                     <p className="text-sm text-gray-500">Cargando actividad...</p>
-                  ) : loginEvents.length === 0 ? (
+              ) : loginEvents.length === 0 ? (
                     <p className="text-sm text-gray-500">Sin registros todavía.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {loginEvents.slice(0, activityVisibleCount).map(event => (
-                        <div
-                          key={event.id}
+              ) : (
+                <div className="space-y-2">
+                  {loginEvents.slice(0, activityVisibleCount).map(event => (
+                    <div
+                      key={event.id}
                           className="flex items-center justify-between gap-4 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1250,8 +1263,8 @@ export default function Home() {
                                 ? 'bg-green-100 text-green-700'
                                 : 'bg-red-100 text-red-700'
                             }`}>
-                              {event.status === 'success' ? 'Éxito' : 'Fallido'}
-                            </span>
+                            {event.status === 'success' ? 'Éxito' : 'Fallido'}
+                          </span>
                             <span className="text-xs text-gray-500 font-mono">{event.provider.toUpperCase()}</span>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900 truncate">
@@ -1279,31 +1292,31 @@ export default function Home() {
                                   const country = safeDecode(event.country);
                                   return `${city}${country ? ` (${country})` : ''}`;
                                 })()}
-                              </p>
-                            </div>
+                        </p>
+                      </div>
                           </div>
                           <span className="text-xs text-gray-500 whitespace-nowrap">
-                            {new Date(event.createdAt).toLocaleString('es-AR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                        </div>
-                      ))}
-                      {activityVisibleCount < loginEvents.length && (
-                        <button
-                          type="button"
-                          onClick={() => setActivityVisibleCount(prev => Math.min(prev + ACTIVITY_PAGE_SIZE, loginEvents.length))}
-                          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                        >
-                          Cargar más
-                        </button>
-                      )}
+                        {new Date(event.createdAt).toLocaleString('es-AR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
                     </div>
+                  ))}
+                  {activityVisibleCount < loginEvents.length && (
+                    <button
+                      type="button"
+                      onClick={() => setActivityVisibleCount(prev => Math.min(prev + ACTIVITY_PAGE_SIZE, loginEvents.length))}
+                          className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      Cargar más
+                    </button>
                   )}
+                </div>
+              )}
                 </div>
               </div>
             </div>
@@ -1324,7 +1337,7 @@ export default function Home() {
               >
                 ✕
               </button>
-            </div>
+      </div>
             <p className="text-sm text-gray-600 mb-6">
               ¿Querés cerrar la sesión en Accounts?
             </p>
