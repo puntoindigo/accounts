@@ -820,9 +820,9 @@ export default function Home() {
                 ? 'Gestiona las personas registradas en el sistema'
                 : 'Historial de eventos de autenticación'}
             </p>
-          </div>
+                  </div>
           {currentView === 'persons' && (
-            <button
+                <button
               type="button"
               onClick={() => setShowCreatePerson(prev => !prev)}
               className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition"
@@ -831,7 +831,7 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Nueva persona
-            </button>
+                </button>
           )}
         </header>
 
@@ -839,66 +839,6 @@ export default function Home() {
         <main className="flex-1 overflow-y-auto p-6">
           {currentView === 'persons' ? (
             <div className="max-w-6xl mx-auto space-y-6">
-              {/* Create Person Form */}
-          {showCreatePerson && (
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <h2 className="text-base font-semibold text-gray-900 mb-4">Crear nueva persona</h2>
-                  <form className="space-y-4" onSubmit={handleCreatePerson}>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Gmail</label>
-                      <div className="flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-transparent bg-white">
-                    <input
-                      value={formData.gmailUser}
-                      onChange={(event) => {
-                        const raw = event.target.value || '';
-                        const localPart = raw.replace(/\s+/g, '').replace(/@/g, '').trim();
-                        setFormData(prev => ({ ...prev, gmailUser: localPart }));
-                      }}
-                      className="flex-1 outline-none bg-transparent"
-                      type="text"
-                      placeholder="usuario"
-                    />
-                        <span className="text-gray-400">@gmail.com</span>
-                  </div>
-                </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre</label>
-                  <input
-                    value={formData.nombre}
-                    onChange={(event) => setFormData(prev => ({ ...prev, nombre: event.target.value }))}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-                  />
-                </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Empresa</label>
-                  <input
-                    value={formData.empresa}
-                    onChange={(event) => setFormData(prev => ({ ...prev, empresa: event.target.value }))}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-                  />
-                </div>
-                    <div className="flex items-center gap-3">
-                <button
-                  type="submit"
-                  disabled={creating}
-                        className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {creating ? 'Creando...' : 'Crear persona'}
-                </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowCreatePerson(false)}
-                        className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                    {registerMessage && (
-                      <p className="text-sm text-red-600">{registerMessage}</p>
-                    )}
-              </form>
-            </div>
-          )}
 
               {/* Persons List */}
           {showPersons && (
@@ -1393,6 +1333,173 @@ export default function Home() {
                 Eliminar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Person Modal */}
+      {showCreatePerson && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Crear nueva persona</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Paso {createPersonStep === 'data' ? '1' : createPersonStep === 'face' ? '2' : '3'} de 3
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreatePerson(false);
+                  setCreatePersonStep('data');
+                  setNewPersonId(null);
+                  setFormData({ gmailUser: '', nombre: '', empresa: '' });
+                }}
+                className="h-8 w-8 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+
+            {createPersonStep === 'data' && (
+              <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreatePerson(e); }}>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Gmail</label>
+                  <div className="flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-transparent bg-white">
+                    <input
+                      value={formData.gmailUser}
+                      onChange={(event) => {
+                        const raw = event.target.value || '';
+                        const localPart = raw.replace(/\s+/g, '').replace(/@/g, '').trim();
+                        setFormData(prev => ({ ...prev, gmailUser: localPart }));
+                      }}
+                      className="flex-1 outline-none bg-transparent"
+                      type="text"
+                      placeholder="usuario"
+                    />
+                    <span className="text-gray-400">@gmail.com</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Nombre</label>
+                  <input
+                    value={formData.nombre}
+                    onChange={(event) => setFormData(prev => ({ ...prev, nombre: event.target.value }))}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Empresa</label>
+                  <input
+                    value={formData.empresa}
+                    onChange={(event) => setFormData(prev => ({ ...prev, empresa: event.target.value }))}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                  />
+                </div>
+                {registerMessage && (
+                  <p className="text-sm text-red-600">{registerMessage}</p>
+                )}
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreatePerson(false);
+                      setCreatePersonStep('data');
+                      setFormData({ gmailUser: '', nombre: '', empresa: '' });
+                    }}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creating}
+                    className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    {creating ? 'Creando...' : 'Siguiente'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {createPersonStep === 'face' && newPersonId && selectedPerson && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">Registrar identidad facial (opcional)</p>
+                <FaceRegistrationPicker
+                  onRegister={async (descriptor, imageUrl) => {
+                    await handleRegisterFaceWithImage(descriptor, imageUrl);
+                    setCreatePersonStep('rfid');
+                  }}
+                  onRemove={handleRemoveFace}
+                  hasSavedFace={!!selectedPerson.faceDescriptor}
+                />
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setCreatePersonStep('rfid')}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
+                  >
+                    Omitir
+                  </button>
+                  {selectedPerson.faceDescriptor && (
+                    <button
+                      type="button"
+                      onClick={() => setCreatePersonStep('rfid')}
+                      className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition"
+                    >
+                      Siguiente
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {createPersonStep === 'rfid' && newPersonId && selectedPerson && (
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">Asociar tarjeta RFID (opcional)</p>
+                <div className="flex gap-2">
+                  <input
+                    value={rfidUid}
+                    onChange={(event) => setRfidUid(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleAssociateRfid();
+                      }
+                    }}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                    placeholder="UID de tarjeta RFID"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAssociateRfid}
+                    disabled={rfidLoading}
+                    className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    Asociar
+                  </button>
+                </div>
+                {rfidMessage && (
+                  <p className="text-xs text-gray-600">{rfidMessage}</p>
+                )}
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreatePerson(false);
+                      setCreatePersonStep('data');
+                      setNewPersonId(null);
+                      setFormData({ gmailUser: '', nombre: '', empresa: '' });
+                      setRfidUid('');
+                    }}
+                    className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition"
+                  >
+                    Finalizar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
