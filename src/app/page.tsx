@@ -1571,7 +1571,7 @@ export default function Home() {
             {createPersonStep === 'rfid' && newPersonId && selectedPerson && (
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">Asociar tarjeta RFID (opcional)</p>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     value={rfidUid}
                     onChange={(event) => setRfidUid(event.target.value)}
@@ -1581,14 +1581,14 @@ export default function Home() {
                         handleAssociateRfid();
                       }
                     }}
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent min-w-0"
                     placeholder="UID de tarjeta RFID"
                   />
                   <button
                     type="button"
                     onClick={handleAssociateRfid}
                     disabled={rfidLoading}
-                    className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition whitespace-nowrap sm:w-auto w-full"
                   >
                     Asociar
                   </button>
