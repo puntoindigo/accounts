@@ -247,6 +247,37 @@ function LoginGate({
 
 export default function Home() {
   const { data: session, status } = useSession();
+  const [isLocalhost, setIsLocalhost] = useState(false);
+  
+  useEffect(() => {
+    // Detectar si estamos en localhost
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      setIsLocalhost(hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1');
+    }
+  }, []);
+
+  // Bypass para localhost: simular sesión autenticada
+  const mockLocalhostSession = useMemo(() => {
+    if (isLocalhost && status !== 'authenticated') {
+      return {
+        user: {
+          name: 'Localhost User',
+          email: 'localhost@accounts.local',
+          image: null
+        },
+        provider: 'localhost',
+        empresa: 'Localhost',
+        isAdmin: true,
+        personId: null
+      };
+    }
+    return null;
+  }, [isLocalhost, status]);
+
+  const effectiveSession = session || mockLocalhostSession;
+  const effectiveStatus = isLocalhost && !session ? 'authenticated' : status;
+
   const PERSONS_PAGE_SIZE = 10;
   const ACTIVITY_PAGE_SIZE = 10;
   const [persons, setPersons] = useState<Person[]>([]);
@@ -298,12 +329,12 @@ export default function Home() {
     });
     return map;
   }, [persons]);
-  const currentUserEmail = (session?.user?.email || '').toLowerCase().trim();
+  const currentUserEmail = (effectiveSession?.user?.email || '').toLowerCase().trim();
   const currentPerson = useMemo(
     () => persons.find(person => person.email.toLowerCase() === currentUserEmail) || null,
     [persons, currentUserEmail]
   );
-  const isAdmin = Boolean((session as any)?.isAdmin);
+  const isAdmin = Boolean((effectiveSession as any)?.isAdmin);
 
   const loadPersons = useCallback(async () => {
     setLoading(true);
@@ -334,17 +365,17 @@ export default function Home() {
   }, [activityFilter]);
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (effectiveStatus === 'authenticated') {
       loadPersons();
       loadLoginEvents();
     }
-  }, [loadPersons, loadLoginEvents, status]);
+  }, [loadPersons, loadLoginEvents, effectiveStatus]);
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (effectiveStatus === 'authenticated') {
       loadLoginEvents();
     }
-  }, [activityFilter, loadLoginEvents, status]);
+  }, [activityFilter, loadLoginEvents, effectiveStatus]);
 
   useEffect(() => {
     if (!selectedPersonId && !showActivity) {
@@ -588,7 +619,7 @@ export default function Home() {
     }
   };
 
-  if (status === 'loading') {
+  if (effectiveStatus === 'loading') {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <p className="text-sm text-gray-500">Cargando...</p>
@@ -596,7 +627,7 @@ export default function Home() {
     );
   }
 
-  if (status !== 'authenticated') {
+  if (effectiveStatus !== 'authenticated') {
     return (
       <Suspense
         fallback={(
@@ -698,13 +729,13 @@ export default function Home() {
               {currentPerson?.faceImageUrl ? (
                 <img
                   src={currentPerson.faceImageUrl}
-                  alt={session?.user?.name || 'Perfil'}
+                  alt={effectiveSession?.user?.name || 'Perfil'}
                   className="w-8 h-8 rounded-full object-cover"
                 />
-              ) : session?.user?.image ? (
+              ) : effectiveSession?.user?.image ? (
                 <img
-                  src={session.user.image}
-                  alt={session.user.name || 'Perfil'}
+                  src={effectiveSession.user.image}
+                  alt={effectiveSession.user.name || 'Perfil'}
                   className="w-8 h-8 rounded-full object-cover"
                 />
               ) : (
@@ -717,10 +748,13 @@ export default function Home() {
               {!sidebarCollapsed && (
                 <div className="flex-1 text-left">
                   <p className="text-xs font-medium text-gray-900 truncate">
-                    {session?.user?.name || session?.user?.email || 'Usuario'}
+                    {effectiveSession?.user?.name || effectiveSession?.user?.email || 'Usuario'}
                   </p>
                   {isAdmin && (
                     <p className="text-[10px] text-gray-500">Admin</p>
+                  )}
+                  {isLocalhost && !session && (
+                    <p className="text-[10px] text-orange-500">Localhost</p>
                   )}
                 </div>
               )}
