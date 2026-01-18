@@ -1,12 +1,32 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 
 export default function DocumentacionPage() {
   const { data: session, status } = useSession();
   const [collapsedDocs, setCollapsedDocs] = useState<Set<number>>(new Set());
+
+  // Prevenir indexación por buscadores (meta tags adicionales)
+  useEffect(() => {
+    // Agregar meta tags para prevenir indexación
+    const metaRobots = document.querySelector('meta[name="robots"]');
+    if (!metaRobots) {
+      const meta = document.createElement('meta');
+      meta.name = 'robots';
+      meta.content = 'noindex, nofollow, noarchive, nosnippet';
+      document.head.appendChild(meta);
+    }
+
+    const metaGooglebot = document.querySelector('meta[name="googlebot"]');
+    if (!metaGooglebot) {
+      const meta = document.createElement('meta');
+      meta.name = 'googlebot';
+      meta.content = 'noindex, nofollow';
+      document.head.appendChild(meta);
+    }
+  }, []);
 
   // Mock session para localhost
   const isLocalhost = typeof window !== 'undefined' && 

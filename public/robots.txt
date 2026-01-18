@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /documentacion
+Disallow: /api/
+Disallow: /embed/
+
+# Permitir solo la página principal y recursos públicos
+Allow: /
+Allow: /embed/accounts-login.beta.01.js
