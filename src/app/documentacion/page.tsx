@@ -82,6 +82,38 @@ export default function DocumentacionPage() {
 
   const documents = [
     {
+      title: '🤖 Prompt Completo para IA',
+      items: [
+        {
+          title: 'Prompt completo para desarrollar el sistema desde cero',
+          description: 'Documento con todas las especificaciones, requerimientos, arquitectura, funcionalidades y mejoras necesarias para que otra IA pueda desarrollar un sistema completo de validación de identidad biométrica similar a Accounts.',
+          details: [
+            '📄 Archivo: prompt-completo-ia.md',
+            '📋 Contenido completo:',
+            '  • Contexto y objetivo del sistema',
+            '  • Stack tecnológico requerido',
+            '  • Arquitectura de base de datos (SQL completo)',
+            '  • Funcionalidades core detalladas',
+            '  • APIs requeridas con especificaciones',
+            '  • UI/UX requeridos',
+            '  • Integración con sistemas externos',
+            '  • Mejoras y optimizaciones',
+            '  • Variables de entorno',
+            '  • Casos de uso específicos',
+            '  • Instrucciones de implementación paso a paso',
+            '  • Criterios de éxito',
+            '  • Puntos críticos a considerar',
+            '',
+            '🎯 Este prompt está diseñado para:',
+            '  • Otra IA que deba desarrollar el sistema desde cero',
+            '  • Desarrolladores que necesiten especificaciones completas',
+            '  • Proyectos similares que requieran guía detallada',
+            '  • Documentación técnica completa del sistema'
+          ]
+        }
+      ]
+    },
+    {
       title: '📘 Guía Completa de Desarrollo',
       items: [
         {
