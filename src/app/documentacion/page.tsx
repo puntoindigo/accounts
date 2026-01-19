@@ -369,12 +369,12 @@ export default function DocumentacionPage() {
                         <span className="font-semibold">{item.title}</span>
                         <span className="ml-1">{item.description}</span>
                       </div>
-                      {(item.details?.length > 0 || item.markdownFile) && (
+                      {(item.details?.length > 0 || ('markdownFile' in item && item.markdownFile)) && (
                         <button
                           type="button"
                           onClick={() => {
                             toggleDoc(globalIndex);
-                            if (!isCollapsed && item.markdownFile) {
+                            if (!isCollapsed && 'markdownFile' in item && item.markdownFile) {
                               loadMarkdownContent(item.markdownFile);
                             }
                           }}
@@ -400,7 +400,7 @@ export default function DocumentacionPage() {
                             ))}
                           </div>
                         )}
-                        {item.markdownFile && (
+                        {'markdownFile' in item && item.markdownFile && (
                           <div className="mt-4 border-t border-gray-200 pt-4">
                             {loadingDocs.has(item.markdownFile) && (
                               <div className="text-sm text-gray-500 italic">
