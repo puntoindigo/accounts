@@ -4,9 +4,15 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 
+interface DocumentContent {
+  [key: string]: string | null;
+}
+
 export default function DocumentacionPage() {
   const { data: session, status } = useSession();
   const [collapsedDocs, setCollapsedDocs] = useState<Set<number>>(new Set());
+  const [docContents, setDocContents] = useState<DocumentContent>({});
+  const [loadingDocs, setLoadingDocs] = useState<Set<string>>(new Set());
 
   // Prevenir indexación por buscadores (meta tags adicionales)
   useEffect(() => {
@@ -59,6 +65,48 @@ export default function DocumentacionPage() {
     });
   };
 
+  const loadMarkdownContent = async (fileName: string) => {
+    // Si ya está cargado, no volver a cargar
+    if (docContents[fileName] !== undefined) {
+      return;
+    }
+
+    // Si ya está cargando, esperar
+    if (loadingDocs.has(fileName)) {
+      return;
+    }
+
+    setLoadingDocs(prev => new Set(prev).add(fileName));
+
+    try {
+      const response = await fetch(`/api/documentacion/${fileName}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDocContents(prev => ({
+          ...prev,
+          [fileName]: data.content
+        }));
+      } else {
+        setDocContents(prev => ({
+          ...prev,
+          [fileName]: null
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading markdown:', error);
+      setDocContents(prev => ({
+        ...prev,
+        [fileName]: null
+      }));
+    } finally {
+      setLoadingDocs(prev => {
+        const next = new Set(prev);
+        next.delete(fileName);
+        return next;
+      });
+    }
+  };
+
   if (effectiveStatus === 'loading') {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -87,6 +135,7 @@ export default function DocumentacionPage() {
         {
           title: 'Prompt completo para desarrollar el sistema desde cero',
           description: 'Documento con todas las especificaciones, requerimientos, arquitectura, funcionalidades y mejoras necesarias para que otra IA pueda desarrollar un sistema completo de validación de identidad biométrica similar a Accounts.',
+          markdownFile: 'prompt-completo-ia.md',
           details: [
             '📄 Archivo: prompt-completo-ia.md',
             '📋 Contenido completo:',
@@ -119,6 +168,7 @@ export default function DocumentacionPage() {
         {
           title: 'Documento técnico completo para continuar el desarrollo',
           description: 'Guía profesional dirigida a otra IA o desarrollador para entender, continuar y mejorar el sistema Accounts. Incluye objetivo, arquitectura, funcionalidades, integraciones, caso de uso de caja de proveeduría, y guía de producción.',
+          markdownFile: 'guia-completa-desarrollo.md',
           details: [
             '📄 Archivo: guia-completa-desarrollo.md',
             '📋 Contenido:',
@@ -319,10 +369,15 @@ export default function DocumentacionPage() {
                         <span className="font-semibold">{item.title}</span>
                         <span className="ml-1">{item.description}</span>
                       </div>
-                      {item.details.length > 0 && (
+                      {(item.details?.length > 0 || item.markdownFile) && (
                         <button
                           type="button"
-                          onClick={() => toggleDoc(globalIndex)}
+                          onClick={() => {
+                            toggleDoc(globalIndex);
+                            if (!isCollapsed && item.markdownFile) {
+                              loadMarkdownContent(item.markdownFile);
+                            }
+                          }}
                           className="text-gray-400 hover:text-gray-600 transition"
                         >
                           <svg
@@ -336,11 +391,50 @@ export default function DocumentacionPage() {
                         </button>
                       )}
                     </div>
-                    {!isCollapsed && item.details.length > 0 && (
-                      <div className="mt-2 text-xs text-gray-500 space-y-1 ml-6">
-                        {item.details.map((detail, detailIndex) => (
-                          <p key={detailIndex}>{detail}</p>
-                        ))}
+                    {!isCollapsed && (
+                      <div className="mt-2 space-y-3 ml-6">
+                        {item.details && item.details.length > 0 && (
+                          <div className="text-xs text-gray-500 space-y-1">
+                            {item.details.map((detail, detailIndex) => (
+                              <p key={detailIndex}>{detail}</p>
+                            ))}
+                          </div>
+                        )}
+                        {item.markdownFile && (
+                          <div className="mt-4 border-t border-gray-200 pt-4">
+                            {loadingDocs.has(item.markdownFile) && (
+                              <div className="text-sm text-gray-500 italic">
+                                Cargando contenido...
+                              </div>
+                            )}
+                            {docContents[item.markdownFile] === undefined && !loadingDocs.has(item.markdownFile) && (
+                              <button
+                                type="button"
+                                onClick={() => loadMarkdownContent(item.markdownFile!)}
+                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                📖 Cargar contenido completo del archivo
+                              </button>
+                            )}
+                            {docContents[item.markdownFile] !== undefined && docContents[item.markdownFile] !== null && (
+                              <div className="mt-2">
+                                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                  <pre className="whitespace-pre-wrap font-mono text-xs text-gray-800 overflow-x-auto max-h-[600px] overflow-y-auto">
+                                    {docContents[item.markdownFile]}
+                                  </pre>
+                                </div>
+                                <div className="mt-2 text-xs text-gray-500">
+                                  📄 Contenido de {item.markdownFile}
+                                </div>
+                              </div>
+                            )}
+                            {docContents[item.markdownFile] === null && !loadingDocs.has(item.markdownFile) && (
+                              <div className="text-sm text-red-500">
+                                ❌ Error al cargar el archivo
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </li>
