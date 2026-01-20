@@ -17,6 +17,7 @@ interface FaceRecognitionCaptureProps {
   autoCaptureCooldownMs?: number;
   autoCaptureDisabled?: boolean;
   autoCaptureNoticeLabel?: string;
+  autoStartCamera?: boolean; // Si debe iniciar la cámara automáticamente al expandir
 }
 
 export default function FaceRecognitionCapture({
