@@ -44,7 +44,8 @@ export default function FaceRecognitionCapture({
   const [message, setMessage] = useState<string | null>(null);
   const [autoCaptureBlocked, setAutoCaptureBlocked] = useState(false);
   const [autoCaptureNotice, setAutoCaptureNotice] = useState(false);
-  const [userStopped, setUserStopped] = useState(false);
+  // Inicializar userStopped en true si no se debe activar automáticamente
+  const [userStopped, setUserStopped] = useState(!autoStartCamera);
   const prevExpandedRef = useRef(isExpanded);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -84,14 +85,20 @@ export default function FaceRecognitionCapture({
 
   useEffect(() => {
     const prevExpanded = prevExpandedRef.current;
+    // Solo resetear userStopped si autoStartCamera está habilitado
     if (isExpanded && !prevExpanded) {
-      setUserStopped(false);
+      if (autoStartCamera) {
+        setUserStopped(false);
+      } else {
+        // Si no debe activarse automáticamente, mantener userStopped en true
+        setUserStopped(true);
+      }
     }
     if (!isExpanded && prevExpanded) {
       setUserStopped(true);
     }
     prevExpandedRef.current = isExpanded;
-  }, [isExpanded]);
+  }, [isExpanded, autoStartCamera]);
 
   useEffect(() => {
     if (detectionIntervalRef.current) {
