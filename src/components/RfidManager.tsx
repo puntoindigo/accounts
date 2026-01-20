@@ -235,6 +235,10 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
     setStatus('connecting');
 
     try {
+      if (!navigator.hid) {
+        throw new Error('WebHID no está disponible en este navegador');
+      }
+
       const devices = await navigator.hid.requestDevice({
         filters: [{ vendorId: VENDOR_ID, productId: PRODUCT_ID }]
       });
