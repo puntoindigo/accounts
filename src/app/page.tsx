@@ -1075,6 +1075,7 @@ export default function Home() {
                           actionLabel=""
                   noticeLabel="Verificando identidad..."
                   autoCaptureDisabled={!!verificationResult}
+                  autoStartCamera={false}
                 />
                 {verifyMessage && (
                           <p className="text-sm text-gray-600">{verifyMessage}</p>

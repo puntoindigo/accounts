@@ -11,6 +11,7 @@ interface FaceRecognitionAutoCaptureProps {
   defaultExpanded?: boolean;
   autoCaptureCooldownMs?: number;
   autoCaptureDisabled?: boolean;
+  autoStartCamera?: boolean;
 }
 
 export default function FaceRecognitionAutoCapture({
@@ -21,7 +22,8 @@ export default function FaceRecognitionAutoCapture({
   noticeLabel,
   defaultExpanded = false,
   autoCaptureCooldownMs = 2000,
-  autoCaptureDisabled = false
+  autoCaptureDisabled = false,
+  autoStartCamera = false
 }: FaceRecognitionAutoCaptureProps) {
   return (
     <FaceRecognitionCapture
@@ -34,6 +36,7 @@ export default function FaceRecognitionAutoCapture({
       autoCaptureCooldownMs={autoCaptureCooldownMs}
       autoCaptureDisabled={autoCaptureDisabled}
       autoCaptureNoticeLabel={noticeLabel}
+      autoStartCamera={autoStartCamera}
     />
   );
 }

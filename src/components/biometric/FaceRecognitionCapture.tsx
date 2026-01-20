@@ -31,7 +31,8 @@ export default function FaceRecognitionCapture({
   autoCaptureOnDetect = false,
   autoCaptureCooldownMs = 2000,
   autoCaptureDisabled = false,
-  autoCaptureNoticeLabel = 'Intentando iniciar sesión...'
+  autoCaptureNoticeLabel = 'Intentando iniciar sesión...',
+  autoStartCamera = false // Por defecto no iniciar automáticamente
 }: FaceRecognitionCaptureProps) {
   const { state, loadModels, detectFace, detectFaceBox, stopDetection } = useFaceRecognition();
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -56,7 +57,9 @@ export default function FaceRecognitionCapture({
   }, [isExpanded, state.isModelLoaded, loadModels]);
 
   useEffect(() => {
+    // Solo activar automáticamente si autoStartCamera está habilitado
     if (
+      autoStartCamera &&
       isExpanded &&
       state.isModelLoaded &&
       !isStreaming &&
@@ -70,7 +73,7 @@ export default function FaceRecognitionCapture({
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [isExpanded, state.isModelLoaded, isStreaming, isStartingCamera, cameraError, userStopped]);
+  }, [autoStartCamera, isExpanded, state.isModelLoaded, isStreaming, isStartingCamera, cameraError, userStopped]);
 
   useEffect(() => {
     if (!isExpanded && isStreaming) {
