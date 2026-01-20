@@ -325,7 +325,7 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
 
   // Escribir en tarjeta
   const writeToCard = useCallback(async () => {
-    if (!device || !device.opened) {
+    if (!device || !device.opened || status !== 'connected') {
       setRfidMessage('El dispositivo no está conectado');
       return;
     }
@@ -338,7 +338,10 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
     }
 
     setIsWriting(true);
-    setRfidMessage('Escribiendo en la tarjeta...');
+    setRfidMessage('⚠️ Asegúrate de tener la tarjeta cerca del lector antes de continuar...');
+
+    // Pequeña pausa para que el usuario lea el mensaje
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
       const idBytes: number[] = [];
@@ -356,11 +359,16 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
           const reportId = outputReport.reportId || 0;
           const commandBuffer = new Uint8Array([0x02, ...writeBuffer]);
           
+          setRfidMessage('📤 Enviando comando de escritura...');
+          
+          // Enviar comando de escritura
           await device.sendReport(reportId, commandBuffer.buffer);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Esperar un momento para que el dispositivo procese el comando
+          await new Promise(resolve => setTimeout(resolve, 1500));
 
           setIsWriting(false);
-          setRfidMessage(`✅ Escritura completada. ID escrito: ${idToWrite}`);
+          setRfidMessage(`⚠️ Comando enviado al dispositivo. ID propuesto: ${idToWrite}\n\n💡 IMPORTANTE: Este mensaje NO confirma que la tarjeta fue escrita.\n\nPara verificar:\n1. Cambia a modo "Leer"\n2. Acerca la tarjeta al lector\n3. Verifica que el UID leído coincida con el ID escrito`);
           setWriteId('');
           setWriteId(generateAutoId());
         } else {
@@ -371,9 +379,9 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
     } catch (error) {
       console.error('[RFID] Error escribiendo:', error);
       setIsWriting(false);
-      setRfidMessage('Error al escribir en la tarjeta');
+      setRfidMessage('❌ Error al enviar comando de escritura. Verifica que la tarjeta esté cerca del lector y que el dispositivo esté conectado.');
     }
-  }, [device, writeId, generateAutoId]);
+  }, [device, writeId, generateAutoId, status]);
 
   // Asociar tarjeta
   const handleAssociateRfid = useCallback(async (uid?: string) => {
@@ -473,38 +481,52 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
         </button>
       </div>
 
-      {/* Estado de conexión */}
+      {/* Estado de conexión - Toggle con icono */}
       <div className="mb-4">
-        {status === 'disconnected' && (
-          <button
-            type="button"
-            onClick={connectDevice}
-            className="w-full px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition"
-          >
-            Conectar Dispositivo
-          </button>
-        )}
-        {status === 'connecting' && (
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-            <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
-            <span>Conectando...</span>
-          </div>
-        )}
-        {status === 'connected' && (
-          <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center gap-2 text-sm text-green-700">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>Conectado</span>
+        <button
+          type="button"
+          onClick={status === 'connected' ? disconnectDevice : connectDevice}
+          disabled={status === 'connecting'}
+          className={`w-full flex items-center justify-between p-3 rounded-lg border transition ${
+            status === 'connected'
+              ? 'bg-green-50 border-green-200'
+              : status === 'connecting'
+              ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
+              : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+              status === 'connected' ? 'bg-green-500' : 'bg-gray-300'
+            }`}>
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
+                  status === 'connected' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
             </div>
-            <button
-              type="button"
-              onClick={disconnectDevice}
-              className="text-xs text-green-700 hover:text-green-800"
-            >
-              Desconectar
-            </button>
+            <span className={`text-sm font-medium ${
+              status === 'connected' ? 'text-green-700' : 'text-gray-700'
+            }`}>
+              {status === 'connected' ? 'Dispositivo conectado' : 
+               status === 'connecting' ? 'Conectando...' : 
+               'Dispositivo desconectado'}
+            </span>
           </div>
-        )}
+          {status === 'connecting' && (
+            <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
+          )}
+          {status === 'connected' && (
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+          {status === 'disconnected' && (
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          )}
+        </button>
       </div>
 
       {/* Modo Leer */}
@@ -527,18 +549,24 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
                   handleAssociateRfid();
                 }
               }}
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent min-w-0"
-              placeholder="UID de tarjeta RFID"
+              disabled={status !== 'connected'}
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent min-w-0 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
+              placeholder={status === 'connected' ? "UID de tarjeta RFID" : "Conecta el dispositivo primero"}
             />
             <button
               type="button"
               onClick={() => handleAssociateRfid()}
-              disabled={rfidLoading || !rfidUid.trim() || !personId}
+              disabled={rfidLoading || !rfidUid.trim() || !personId || status !== 'connected'}
               className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition whitespace-nowrap sm:w-auto w-full"
             >
               {rfidLoading ? 'Asociando...' : 'Asociar'}
             </button>
           </div>
+          {status !== 'connected' && (
+            <p className="text-xs text-gray-500">
+              Conecta el dispositivo para habilitar la lectura
+            </p>
+          )}
           {readEmpty && (
             <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800">
               ⚠️ Tarjeta detectada pero no contiene datos
@@ -562,14 +590,19 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
                 setWriteId(value);
               }}
               placeholder={generateAutoId()}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
               maxLength={12}
-              disabled={isWriting}
+              disabled={isWriting || status !== 'connected'}
             />
             <p className="text-xs text-gray-400 mt-1">
               Si no especificas un ID, se usará el propuesto automáticamente
             </p>
           </div>
+          {status !== 'connected' && (
+            <p className="text-xs text-gray-500">
+              Conecta el dispositivo para habilitar la escritura
+            </p>
+          )}
           <button
             type="button"
             onClick={writeToCard}
@@ -585,14 +618,25 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
               'Escribir en Tarjeta'
             )}
           </button>
+          <p className="text-xs text-gray-500">
+            💡 Acerca la tarjeta al lector antes de hacer clic en "Escribir en Tarjeta"
+          </p>
         </div>
       )}
 
       {/* Mensajes */}
       {rfidMessage && (
-        <p className={`text-xs mt-2 ${rfidMessage.includes('✅') ? 'text-green-600' : 'text-gray-600'}`}>
+        <div className={`mt-2 p-3 rounded-lg border text-xs whitespace-pre-line ${
+          rfidMessage.includes('✅') 
+            ? 'bg-green-50 border-green-200 text-green-800' 
+            : rfidMessage.includes('⚠️') || rfidMessage.includes('💡')
+            ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+            : rfidMessage.includes('❌')
+            ? 'bg-red-50 border-red-200 text-red-800'
+            : 'bg-gray-50 border-gray-200 text-gray-600'
+        }`}>
           {rfidMessage}
-        </p>
+        </div>
       )}
 
       {/* Lista de tarjetas */}
