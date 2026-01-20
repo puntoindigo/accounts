@@ -5,6 +5,7 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
 import FaceRegistrationPicker from '@/components/biometric/FaceRegistrationPicker';
+import RfidManager from '@/components/RfidManager';
 import { useSearchParams } from 'next/navigation';
 
 interface Person {
@@ -1099,86 +1100,17 @@ export default function Home() {
                   </div>
 
                   {/* RFID */}
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-base font-semibold text-gray-900">RFID</h2>
-                      <span className="text-xs text-gray-500">
-                        {rfidCards.length} tarjetas
-                      </span>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <input
-                          value={rfidUid}
-                          onChange={(event) => setRfidUid(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                              event.preventDefault();
-                              handleAssociateRfid();
-                            }
-                          }}
-                          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent min-w-0"
-                          placeholder="UID de tarjeta RFID"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAssociateRfid}
-                          disabled={rfidLoading}
-                          className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition whitespace-nowrap sm:w-auto w-full"
-                        >
-                          Asociar
-                        </button>
-                      </div>
-                      {rfidMessage && (
-                        <p className="text-xs text-gray-600">{rfidMessage}</p>
-                      )}
-                      <div className="space-y-2">
-                        {rfidLoading ? (
-                          <p className="text-sm text-gray-500">Cargando tarjetas...</p>
-                        ) : rfidCards.length === 0 ? (
-                          <p className="text-sm text-gray-500">Sin tarjetas vinculadas.</p>
-                        ) : (
-                          rfidCards.map(card => (
-                            <div
-                              key={card.id}
-                              className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2"
-                            >
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">UID {card.uid}</p>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(card.createdAt).toLocaleDateString('es-AR')}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-3">
-              <button
-                type="button"
-                                  onClick={() => handleToggleRfid(card.id, !card.active)}
-                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                                    card.active ? 'bg-gray-900' : 'bg-gray-300'
-                                  }`}
-                                >
-                                  <span
-                                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
-                                      card.active ? 'translate-x-6' : 'translate-x-1'
-                                    }`}
-                                  />
-              </button>
-                                {!card.active && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setRfidDeleteCard(card)}
-                                    className="text-xs text-red-600 hover:text-red-700 cursor-pointer"
-                                  >
-                                    Eliminar
-                                  </button>
-                                )}
-            </div>
-          </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <RfidManager
+                    personId={selectedPerson?.id || null}
+                    onCardRead={(uid) => {
+                      setRfidUid(uid);
+                    }}
+                    onCardAssociated={() => {
+                      if (selectedPerson) {
+                        loadRfidCards(selectedPerson.id);
+                      }
+                    }}
+                  />
 
                   {/* Opciones */}
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
