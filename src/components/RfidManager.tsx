@@ -455,32 +455,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
         <span className="text-xs text-gray-500">{rfidCards.length} tarjetas</span>
       </div>
 
-      {/* Selector de modo */}
-      <div className="flex gap-2 mb-4">
-        <button
-          type="button"
-          onClick={() => setMode('read')}
-          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-            mode === 'read'
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          Leer
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('write')}
-          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-            mode === 'write'
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          Escribir
-        </button>
-      </div>
-
       {/* Estado de conexión - Toggle con icono */}
       <div className="mb-4">
         <button
@@ -526,6 +500,38 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           )}
+        </button>
+      </div>
+
+      {/* Selector de modo */}
+      <div className="flex gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => setMode('read')}
+          disabled={status !== 'connected'}
+          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
+            status !== 'connected'
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : mode === 'read'
+              ? 'bg-gray-900 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Leer
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('write')}
+          disabled={status !== 'connected'}
+          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
+            status !== 'connected'
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : mode === 'write'
+              ? 'bg-gray-900 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Escribir
         </button>
       </div>
 
