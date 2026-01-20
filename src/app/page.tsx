@@ -1069,7 +1069,7 @@ export default function Home() {
                       <div className="space-y-4">
                 <FaceRecognitionAutoCapture
                   onDescriptorCaptured={handleVerifyFace}
-                  defaultExpanded={false}
+                  defaultExpanded={true}
                           title=""
                           description=""
                           actionLabel=""

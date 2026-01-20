@@ -267,23 +267,28 @@ export default function FaceRecognitionCapture({
 
   const hasSavedDescriptor = Array.isArray(savedDescriptor) && savedDescriptor.length > 0;
 
+  // Si no hay título ni descripción, mostrar directamente sin header colapsable
+  const showCollapsible = title || description;
+
   return (
     <div className="w-full rounded-lg border border-slate-200 bg-white shadow-sm">
-      <button
-        type="button"
-        className="w-full text-left px-4 py-3 border-b border-slate-100 flex items-center justify-between"
-        onClick={() => !readOnly && !hasSavedDescriptor && setIsExpanded(!isExpanded)}
-      >
-        <div>
-          <p className="text-sm font-semibold text-slate-900">{title}</p>
-          <p className="text-xs text-slate-500">{description}</p>
-        </div>
-        <div className="text-xs text-slate-500">
-          {hasSavedDescriptor ? 'Registrado' : isExpanded ? 'Ocultar' : 'Mostrar'}
-        </div>
-      </button>
+      {showCollapsible && (
+        <button
+          type="button"
+          className="w-full text-left px-4 py-3 border-b border-slate-100 flex items-center justify-between"
+          onClick={() => !readOnly && !hasSavedDescriptor && setIsExpanded(!isExpanded)}
+        >
+          <div>
+            <p className="text-sm font-semibold text-slate-900">{title}</p>
+            <p className="text-xs text-slate-500">{description}</p>
+          </div>
+          <div className="text-xs text-slate-500">
+            {hasSavedDescriptor ? 'Registrado' : isExpanded ? 'Ocultar' : 'Mostrar'}
+          </div>
+        </button>
+      )}
 
-      {isExpanded && (
+      {(!showCollapsible || isExpanded) && (
         <div className="p-4 space-y-4">
           {!state.isModelLoaded && (
             <div className="text-sm text-slate-600">Cargando modelos de reconocimiento...</div>
