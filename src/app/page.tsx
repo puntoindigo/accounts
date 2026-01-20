@@ -1005,28 +1005,33 @@ export default function Home() {
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-base font-semibold text-gray-900">Identidad facial</h2>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-medium ${faceMode === 'verify' ? 'text-gray-900' : 'text-gray-400'}`}>
-                  Verificar
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setFaceMode(faceMode === 'verify' ? 'register' : 'verify')}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-                            faceMode === 'register' ? 'bg-gray-900' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
-                              faceMode === 'register' ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-                        <span className={`text-xs font-medium ${faceMode === 'register' ? 'text-gray-900' : 'text-gray-400'}`}>
-                  Registrar
-                </span>
-              </div>
-            </div>
+                    </div>
+
+                    {/* Selector de modo */}
+                    <div className="flex gap-2 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => setFaceMode('verify')}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                          faceMode === 'verify'
+                            ? 'bg-gray-900 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        Verificar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFaceMode('register')}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                          faceMode === 'register'
+                            ? 'bg-gray-900 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        Registrar
+                      </button>
+                    </div>
 
             {faceMode === 'register' ? (
                       <div className="space-y-4">
