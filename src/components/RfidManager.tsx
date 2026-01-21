@@ -587,126 +587,87 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       {mode === 'read' && (
         <div className="space-y-4">
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-800 font-medium mb-1">
-              📡 Lectura vía Script Node.js
+            <p className="text-xs text-blue-800 font-medium mb-2">
+              📖 Prueba de Lectura
             </p>
-            <p className="text-xs text-blue-700 mb-2">
-              Este dispositivo no soporta lectura vía WebHID. Para leer tarjetas:
+            <p className="text-xs text-blue-700 mb-1">
+              Opción 1: Pasa la tarjeta por el lector (si funciona como teclado, desconecta WebHID primero)
             </p>
-            <ol className="text-xs text-blue-700 list-decimal list-inside space-y-1 mb-2">
-              <li>Ejecuta: <code className="bg-blue-100 px-1 rounded">node scripts/rfid-reader.js</code></li>
-              <li>El script detectará tarjetas automáticamente</li>
-              <li>Los UIDs aparecerán aquí automáticamente</li>
-            </ol>
-            {pollingActive && (
-              <p className="text-xs text-green-700 font-medium">
-                ✅ Polling activo - Esperando tarjetas...
-              </p>
-            )}
-            {lastReadCard && (
-              <p className="text-xs text-gray-600 mt-2">
-                Última lectura: {lastReadCard.uid} ({new Date(lastReadCard.timestamp).toLocaleTimeString()})
+            <p className="text-xs text-blue-700">
+              Opción 2: Ingresa el UID manualmente abajo
+            </p>
+            {pollingActive && lastReadCard && (
+              <p className="text-xs text-green-700 font-medium mt-2">
+                ✅ Última lectura: {lastReadCard.uid}
               </p>
             )}
           </div>
           
           <div className="space-y-2">
-            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-xs text-yellow-800 font-medium mb-1">
-                🔍 Modo de Lectura
-              </p>
-              <p className="text-xs text-yellow-700">
-                Si el dispositivo funciona como teclado, <strong>desconéctalo de WebHID</strong> primero, luego pasa la tarjeta y el UID aparecerá automáticamente aquí.
-              </p>
-            </div>
+            <label className="block text-xs text-gray-600 mb-1">
+              UID de la tarjeta:
+            </label>
             <input
               ref={keyboardInputRef}
               type="text"
-              autoFocus={mode === 'read' && status !== 'connected'}
-              placeholder={status === 'connected' ? "Desconecta WebHID primero, luego pasa la tarjeta..." : "Pasa la tarjeta por el lector - el UID aparecerá aquí"}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-              onInput={(e) => {
-                const target = e.target as HTMLInputElement;
-                const value = target.value;
-                
-                if (value && value !== keyboardInputValueRef.current) {
-                  keyboardInputValueRef.current = value;
-                  setRfidUid(value);
-                  setReadEmpty(false);
-                  
-                  if (value.length >= 4) {
-                    handleCardRead(value);
-                    setTimeout(() => {
-                      if (keyboardInputRef.current) {
-                        keyboardInputRef.current.value = '';
-                        keyboardInputValueRef.current = '';
-                        setRfidUid('');
-                        keyboardInputRef.current.focus();
-                      }
-                    }, 500);
-                  }
-                }
-              }}
+              value={rfidUid}
               onChange={(e) => {
                 const value = e.target.value;
+                setRfidUid(value);
+                keyboardInputValueRef.current = value;
                 
-                if (value && value !== keyboardInputValueRef.current) {
-                  keyboardInputValueRef.current = value;
-                  setRfidUid(value);
-                  setReadEmpty(false);
-                  
-                  if (value.length >= 4) {
-                    handleCardRead(value);
-                    setTimeout(() => {
-                      if (keyboardInputRef.current) {
-                        keyboardInputRef.current.value = '';
-                        keyboardInputValueRef.current = '';
-                        setRfidUid('');
-                        keyboardInputRef.current.focus();
-                      }
-                    }, 500);
+                // Auto-procesar si tiene al menos 4 caracteres y parece un UID
+                if (value.length >= 4 && /^[0-9A-Fa-f\s:]+$/.test(value)) {
+                  const normalized = value.trim().replace(/\s+/g, '').replace(/:/g, '').toUpperCase();
+                  if (normalized.length >= 4) {
+                    handleCardRead(normalized);
                   }
                 }
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && keyboardInputValueRef.current.trim()) {
-                  const value = keyboardInputValueRef.current.trim();
-                  if (value.length >= 4) {
-                    handleCardRead(value);
-                  } else if (value && personId) {
-                    handleAssociateRfid(value);
-                  }
-                }
-              }}
-            />
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              value={rfidUid}
-              onChange={(e) => setRfidUid(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && rfidUid.trim()) {
-                  handleAssociateRfid();
+                  const normalized = rfidUid.trim().replace(/\s+/g, '').replace(/:/g, '').toUpperCase();
+                  if (normalized.length >= 4) {
+                    handleCardRead(normalized);
+                  } else if (normalized && personId) {
+                    handleAssociateRfid(normalized);
+                  }
                 }
               }}
-              disabled={status !== 'connected'}
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent min-w-0 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
-              placeholder="O ingresa UID manualmente aquí"
+              placeholder="Pasa la tarjeta o ingresa UID aquí (ej: 1234567890AB)"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              autoFocus={mode === 'read'}
             />
             <button
               type="button"
-              onClick={() => handleAssociateRfid()}
-              disabled={rfidLoading || !rfidUid.trim() || !personId || status !== 'connected'}
-              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition whitespace-nowrap sm:w-auto w-full"
+              onClick={() => {
+                if (rfidUid.trim()) {
+                  const normalized = rfidUid.trim().replace(/\s+/g, '').replace(/:/g, '').toUpperCase();
+                  if (normalized.length >= 4) {
+                    handleCardRead(normalized);
+                  }
+                }
+              }}
+              disabled={!rfidUid.trim() || rfidUid.trim().length < 4}
+              className="w-full px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
-              {rfidLoading ? 'Asociando...' : 'Asociar'}
+              Procesar UID
             </button>
           </div>
-          {status !== 'connected' && (
-            <p className="text-xs text-gray-500">
-              Conecta el dispositivo para habilitar la lectura
-            </p>
+          
+          {rfidUid && rfidUid.length >= 4 && personId && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleAssociateRfid()}
+                disabled={rfidLoading}
+                className="flex-1 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {rfidLoading ? 'Asociando...' : 'Asociar Tarjeta'}
+              </button>
+            </div>
           )}
+          
           {readEmpty && (
             <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800">
               ⚠️ Tarjeta detectada pero no contiene datos
