@@ -93,7 +93,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
   const [lastUid, setLastUid] = useState<string>('');
   const [writeId, setWriteId] = useState<string>('');
   const [isWriting, setIsWriting] = useState(false);
-  const [isReading, setIsReading] = useState(false);
   const [readEmpty, setReadEmpty] = useState(false);
   const [rfidUid, setRfidUid] = useState('');
   const [rfidLoading, setRfidLoading] = useState(false);
@@ -372,94 +371,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
     }
   }, [device]);
 
-  // Trigger lectura manual
-  const triggerRead = useCallback(async () => {
-    if (!device || !device.opened || status !== 'connected') {
-      setRfidMessage('El dispositivo no está conectado');
-      return;
-    }
-
-    setIsReading(true);
-    setRfidMessage('📖 Enviando comando de lectura...');
-    setReadEmpty(false);
-
-    try {
-      if (device.collections && device.collections.length > 0) {
-        const collection = device.collections[0];
-        if (collection.outputReports && collection.outputReports.length > 0) {
-          const outputReport = collection.outputReports[0];
-          const reportId = outputReport.reportId || 0;
-          
-          // Probar diferentes comandos de lectura
-          // Algunos dispositivos requieren comandos específicos para activar lectura continua
-          const readCommands = [
-            new Uint8Array([0x03]), // Comando de lectura común
-            new Uint8Array([0x04]), // Alternativa
-            new Uint8Array([reportId, 0x03]), // Con reportId
-            new Uint8Array([0x01]), // Re-activación
-            new Uint8Array([0x05]), // Otro comando común
-            new Uint8Array([0x06]), // Otro comando común
-            new Uint8Array([0xFF]), // Comando de reset/activación
-            new Uint8Array([0x02, 0x00]), // Comando de lectura con parámetro
-            new Uint8Array([0x03, 0x01]), // Comando de lectura con flag
-          ];
-          
-          console.log('[RFID] Enviando comandos de lectura con reportId:', reportId);
-          console.log('[RFID] IMPORTANTE: El dispositivo detecta tarjetas (beep/luz) pero necesita comando para enviar datos');
-          
-          // Enviar comandos uno por uno y esperar respuesta después de cada uno
-          for (let i = 0; i < readCommands.length; i++) {
-            const cmd = readCommands[i];
-            try {
-              console.log('[RFID] Enviando comando de lectura', i + 1, '/', readCommands.length, ':', Array.from(cmd).map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase()).join(' '));
-              await device.sendReport(reportId, cmd.buffer);
-              console.log('[RFID] Comando de lectura', i + 1, 'enviado exitosamente');
-              
-              // Esperar un momento para ver si hay respuesta
-              await new Promise(resolve => setTimeout(resolve, 300));
-              
-              // Si ya recibimos un UID, no necesitamos seguir
-              if (lastUid) {
-                console.log('[RFID] ¡UID recibido! No necesitamos más comandos');
-                break;
-              }
-            } catch (err) {
-              console.warn('[RFID] Error enviando comando de lectura', i + 1, ':', err);
-            }
-          }
-          
-          // Después de enviar todos los comandos, esperar un poco más
-          console.log('[RFID] Todos los comandos enviados. Esperando respuesta...');
-          console.log('[RFID] Pasa la tarjeta AHORA si aún no lo has hecho');
-          
-          setRfidMessage('📖 Comando de lectura enviado. Acerca la tarjeta al lector ahora...');
-          
-          // Esperar más tiempo para recibir respuesta y dar tiempo al usuario
-          console.log('[RFID] Esperando respuesta del dispositivo... (5 segundos)');
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          
-          setIsReading(false);
-          
-          if (!lastUid) {
-            setRfidMessage('⚠️ No se detectó ninguna tarjeta después de enviar comandos.\n\n💡 Prueba:\n1. Desconecta el dispositivo de WebHID\n2. Pasa la tarjeta directamente (funcionará como teclado)\n3. O verifica que la tarjeta esté cerca del lector');
-            console.warn('[RFID] No se recibió ningún input report después de enviar comandos de lectura');
-          } else {
-            setRfidMessage(`✅ Tarjeta detectada: ${lastUid}`);
-          }
-        } else {
-          setIsReading(false);
-          setRfidMessage('El dispositivo no soporta lectura');
-        }
-      } else {
-        setIsReading(false);
-        setRfidMessage('Error: No se encontraron collections para lectura');
-      }
-    } catch (error) {
-      console.error('[RFID] Error en lectura:', error);
-      setIsReading(false);
-      setRfidMessage('❌ Error al enviar comando de lectura');
-    }
-  }, [device, status, lastUid]);
 
   // Escribir en tarjeta
   const writeToCard = useCallback(async () => {
