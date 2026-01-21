@@ -738,21 +738,19 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       {/* Modo Leer */}
       {mode === 'read' && (
         <div className="space-y-4">
-          <button
-            type="button"
-            onClick={triggerRead}
-            disabled={isReading || !device || status !== 'connected'}
-            className="w-full px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            {isReading ? (
-              <span className="flex items-center justify-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Leyendo...
-              </span>
-            ) : (
-              'Leer Tarjeta'
-            )}
-          </button>
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-xs text-red-800 font-medium mb-1">
+              ⚠️ Limitación del Dispositivo
+            </p>
+            <p className="text-xs text-red-700">
+              Este dispositivo <strong>no soporta lectura vía WebHID</strong>. 
+              Detecta tarjetas (beep/luz) pero no envía datos.
+            </p>
+            <p className="text-xs text-red-600 mt-2">
+              💡 <strong>Solución:</strong> Usa un script Node.js con PC/SC para lectura, 
+              o ingresa el UID manualmente abajo.
+            </p>
+          </div>
           
           <div className="space-y-2">
             <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg">

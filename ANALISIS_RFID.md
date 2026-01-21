@@ -84,9 +84,30 @@ Es posible que este modelo específico solo permita:
 - Asumir que es una tarjeta RFID
 - Procesar automáticamente el UID
 
-## Próximos Pasos
+## Conclusión Final
 
-1. ✅ Confirmar que el input de teclado captura datos cuando pasas una tarjeta
-2. ✅ Mejorar la detección automática en el input
-3. ✅ Agregar feedback visual cuando se detecta una tarjeta
-4. ✅ Mantener WebHID solo para escritura
+**El dispositivo wCopy Smart Reader NO soporta lectura vía WebHID.**
+
+### Lo que funciona:
+- ✅ **Escritura vía WebHID** - Los comandos de escritura se envían correctamente
+- ✅ **Conexión WebHID** - El dispositivo se conecta y acepta comandos
+
+### Lo que NO funciona:
+- ❌ **Lectura vía WebHID** - El dispositivo detecta tarjetas (beep/luz) pero no envía datos
+- ❌ **Emulación de teclado** - El dispositivo no funciona como teclado
+
+## Solución Final Recomendada
+
+**Opción 1: Solo escritura vía WebHID (MÁS SIMPLE)**
+- Mantener WebHID solo para escribir en tarjetas
+- Para lectura, usar un script Node.js con PC/SC (como en recibos-gremio)
+- El script envía UIDs a la API y la web app los consume
+
+**Opción 2: Polling a API (SI ya existe script Node.js)**
+- Crear endpoint `/api/rfid/last-read` que devuelva el último UID leído
+- La web app hace polling cada 1-2 segundos
+- Cuando detecta nuevo UID, lo procesa automáticamente
+
+**Opción 3: Aceptar limitación**
+- Solo usar WebHID para escritura
+- Lectura manual: usuario ingresa UID manualmente o usa otro método
