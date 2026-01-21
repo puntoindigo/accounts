@@ -442,19 +442,32 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
           ];
           
           console.log('[RFID] Enviando comandos de lectura con reportId:', reportId);
+          console.log('[RFID] IMPORTANTE: El dispositivo detecta tarjetas (beep/luz) pero necesita comando para enviar datos');
           
+          // Enviar comandos uno por uno y esperar respuesta después de cada uno
           for (let i = 0; i < readCommands.length; i++) {
             const cmd = readCommands[i];
             try {
-              console.log('[RFID] Enviando comando de lectura', i + 1, ':', Array.from(cmd).map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase()).join(' '));
+              console.log('[RFID] Enviando comando de lectura', i + 1, '/', readCommands.length, ':', Array.from(cmd).map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase()).join(' '));
               await device.sendReport(reportId, cmd.buffer);
               console.log('[RFID] Comando de lectura', i + 1, 'enviado exitosamente');
-              // Pequeña pausa entre comandos
-              await new Promise(resolve => setTimeout(resolve, 100));
+              
+              // Esperar un momento para ver si hay respuesta
+              await new Promise(resolve => setTimeout(resolve, 300));
+              
+              // Si ya recibimos un UID, no necesitamos seguir
+              if (lastUid) {
+                console.log('[RFID] ¡UID recibido! No necesitamos más comandos');
+                break;
+              }
             } catch (err) {
               console.warn('[RFID] Error enviando comando de lectura', i + 1, ':', err);
             }
           }
+          
+          // Después de enviar todos los comandos, esperar un poco más
+          console.log('[RFID] Todos los comandos enviados. Esperando respuesta...');
+          console.log('[RFID] Pasa la tarjeta AHORA si aún no lo has hecho');
           
           setRfidMessage('📖 Comando de lectura enviado. Acerca la tarjeta al lector ahora...');
           
