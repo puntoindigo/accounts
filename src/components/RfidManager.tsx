@@ -140,6 +140,47 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
     loadRfidCards();
   }, [loadRfidCards]);
 
+  // Asociar tarjeta
+  const handleAssociateRfid = useCallback(async (uid?: string) => {
+    const uidToAssociate = uid || rfidUid.trim();
+    
+    if (!uidToAssociate || !personId) {
+      setRfidMessage('UID y persona son requeridos');
+      return;
+    }
+
+    setRfidLoading(true);
+    setRfidMessage(null);
+
+    try {
+      const response = await fetch('/api/rfid/associate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personId,
+          uid: uidToAssociate
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setRfidMessage('✅ Tarjeta asociada correctamente');
+        setRfidUid('');
+        await loadRfidCards();
+        if (onCardAssociated) {
+          onCardAssociated();
+        }
+      } else {
+        setRfidMessage(data.error || 'Error asociando tarjeta');
+      }
+    } catch (error) {
+      setRfidMessage('Error asociando tarjeta');
+    } finally {
+      setRfidLoading(false);
+    }
+  }, [rfidUid, personId, loadRfidCards, onCardAssociated]);
+
   // Procesar lectura de tarjeta
   const handleCardRead = useCallback((uid: string) => {
     const now = Date.now();
@@ -165,7 +206,7 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       setRfidUid(normalizedUid);
       handleAssociateRfid(normalizedUid);
     }
-  }, [lastUid, onCardRead, mode, personId]);
+  }, [lastUid, onCardRead, mode, personId, handleAssociateRfid]);
 
   // Polling para obtener último UID leído desde el script Node.js
   const pollLastRead = useCallback(async () => {
@@ -431,47 +472,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
     }
   }, [device, writeId, generateAutoId, status]);
 
-  // Asociar tarjeta
-  const handleAssociateRfid = useCallback(async (uid?: string) => {
-    const uidToAssociate = uid || rfidUid.trim();
-    
-    if (!uidToAssociate || !personId) {
-      setRfidMessage('UID y persona son requeridos');
-      return;
-    }
-
-    setRfidLoading(true);
-    setRfidMessage(null);
-
-    try {
-      const response = await fetch('/api/rfid/associate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          personId,
-          uid: uidToAssociate
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setRfidMessage('✅ Tarjeta asociada correctamente');
-        setRfidUid('');
-        await loadRfidCards();
-        if (onCardAssociated) {
-          onCardAssociated();
-        }
-      } else {
-        setRfidMessage(data.error || 'Error asociando tarjeta');
-      }
-    } catch (error) {
-      console.error('Error asociando tarjeta:', error);
-      setRfidMessage('Error asociando tarjeta');
-    } finally {
-      setRfidLoading(false);
-    }
-  }, [rfidUid, personId, loadRfidCards, onCardAssociated]);
 
   // Limpiar al desmontar
   useEffect(() => {
