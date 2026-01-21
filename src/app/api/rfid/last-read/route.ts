@@ -2,29 +2,15 @@
 // Endpoint API para recibir y obtener el último UID leído desde el script Node.js
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 // Clave fija para almacenar el último UID
 const RFID_LAST_READ_KEY = 'rfid_last_read';
 
-// Obtener variables de entorno
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Crear cliente de Supabase con service role key para acceso completo
-const supabase = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : null;
-
 // POST: Recibir UID desde el script Node.js
 export async function POST(request: NextRequest) {
   try {
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Supabase no configurado' },
-        { status: 500 }
-      );
-    }
+    const supabase = getSupabaseAdmin();
 
     const body = await request.json();
     const { uid, timestamp } = body;
@@ -43,8 +29,7 @@ export async function POST(request: NextRequest) {
 
     console.log('📱 Tarjeta RFID recibida:', cardData);
 
-    // Guardar en Supabase usando app_config (o tabla similar)
-    // Si no existe app_config, usar una tabla temporal o localStorage del servidor
+    // Guardar en Supabase usando app_config
     const { error: upsertError } = await supabase
       .from('app_config')
       .upsert({
@@ -79,13 +64,7 @@ export async function POST(request: NextRequest) {
 // GET: Obtener el último UID leído
 export async function GET() {
   try {
-    if (!supabase) {
-      return NextResponse.json({
-        success: true,
-        card: null,
-        timestamp: new Date().toISOString()
-      });
-    }
+    const supabase = getSupabaseAdmin();
 
     const { data, error } = await supabase
       .from('app_config')
