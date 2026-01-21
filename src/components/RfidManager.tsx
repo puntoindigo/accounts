@@ -505,14 +505,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
 
       {/* Estado de conexión - Toggle con icono */}
       <div className="mb-4">
-        <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-xs text-blue-800 mb-1">
-            💡 <strong>Importante:</strong> Si el dispositivo funciona como teclado, puede que necesite estar <strong>desconectado</strong> de WebHID para leer tarjetas.
-          </p>
-          <p className="text-xs text-blue-700">
-            Usa WebHID solo para escribir. Para leer, desconecta y pasa la tarjeta.
-          </p>
-        </div>
         <button
           type="button"
           onClick={status === 'connected' ? disconnectDevice : connectDevice}
@@ -726,6 +718,24 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       {/* Modo Escribir */}
       {mode === 'write' && (
         <div className="space-y-4">
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-xs text-green-800 font-medium mb-2">
+              ✍️ Prueba de Escritura
+            </p>
+            <p className="text-xs text-green-700">
+              1. Conecta el dispositivo (toggle arriba)
+            </p>
+            <p className="text-xs text-green-700">
+              2. Ingresa o usa el ID propuesto
+            </p>
+            <p className="text-xs text-green-700">
+              3. Acerca la tarjeta al lector
+            </p>
+            <p className="text-xs text-green-700">
+              4. Haz clic en "Escribir en Tarjeta"
+            </p>
+          </div>
+          
           <div>
             <label className="block text-xs text-gray-600 mb-2">
               ID a escribir (12 dígitos):
@@ -742,20 +752,34 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
               maxLength={12}
               disabled={isWriting || status !== 'connected'}
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Si no especificas un ID, se usará el propuesto automáticamente
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-gray-400">
+                ID propuesto: <span className="font-mono">{generateAutoId()}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => setWriteId(generateAutoId())}
+                disabled={isWriting || status !== 'connected'}
+                className="text-xs text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+              >
+                Usar ID propuesto
+              </button>
+            </div>
           </div>
+          
           {status !== 'connected' && (
-            <p className="text-xs text-gray-500">
-              Conecta el dispositivo para habilitar la escritura
-            </p>
+            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-800">
+                ⚠️ Conecta el dispositivo arriba para habilitar la escritura
+              </p>
+            </div>
           )}
+          
           <button
             type="button"
             onClick={writeToCard}
             disabled={isWriting || !device || status !== 'connected'}
-            className="w-full px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="w-full px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {isWriting ? (
               <span className="flex items-center justify-center gap-2">
@@ -766,9 +790,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
               'Escribir en Tarjeta'
             )}
           </button>
-          <p className="text-xs text-gray-500">
-            💡 Acerca la tarjeta al lector antes de hacer clic en "Escribir en Tarjeta"
-          </p>
         </div>
       )}
 
