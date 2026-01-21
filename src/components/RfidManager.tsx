@@ -754,7 +754,7 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
               ref={keyboardInputRef}
               type="text"
               autoFocus={mode === 'read' && status !== 'connected'}
-              placeholder={status === 'connected' ? "Desconecta WebHID primero, luego pasa la tarjeta..." : "Pasa la tarjeta por el lector (el UID aparecerá aquí)...")
+              placeholder={status === 'connected' ? "Desconecta WebHID primero, luego pasa la tarjeta..." : "Pasa la tarjeta por el lector - el UID aparecerá aquí"}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               onInput={(e) => {
                 const target = e.target as HTMLInputElement;
