@@ -141,6 +141,33 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
     loadRfidCards();
   }, [loadRfidCards]);
 
+  // Procesar lectura de tarjeta
+  const handleCardRead = useCallback((uid: string) => {
+    const now = Date.now();
+    const normalizedUid = uid.trim().replace(/\s+/g, '').replace(/:/g, '').toUpperCase();
+
+    if (!normalizedUid || normalizedUid.length < 4) {
+      return;
+    }
+
+    if (normalizedUid === lastUid && (now - lastReadTimeRef.current) < DEBOUNCE_MS) {
+      return;
+    }
+
+    setLastUid(normalizedUid);
+    lastReadTimeRef.current = now;
+
+    if (onCardRead) {
+      onCardRead(normalizedUid);
+    }
+
+    // Si estamos en modo lectura y hay personId, asociar automáticamente
+    if (mode === 'read' && personId) {
+      setRfidUid(normalizedUid);
+      handleAssociateRfid(normalizedUid);
+    }
+  }, [lastUid, onCardRead, mode, personId]);
+
   // Polling para obtener último UID leído desde el script Node.js
   const pollLastRead = useCallback(async () => {
     try {
@@ -153,8 +180,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
           lastPolledTimestampRef.current = data.card.timestamp;
           setLastReadCard(data.card);
           
-          console.log('[RFID] Nuevo UID leído desde script Node.js:', data.card.uid);
-          
           // Procesar el UID automáticamente
           if (mode === 'read' && data.card.uid) {
             handleCardRead(data.card.uid);
@@ -162,7 +187,7 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
         }
       }
     } catch (error) {
-      console.error('[RFID] Error en polling:', error);
+      // Error silencioso en polling
     }
   }, [mode, handleCardRead]);
 
@@ -172,14 +197,12 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       setPollingActive(true);
       // Polling cada 1 segundo
       pollingIntervalRef.current = setInterval(pollLastRead, 1000);
-      console.log('[RFID] Polling iniciado para lectura de tarjetas');
     } else if (mode !== 'read' && pollingActive) {
       setPollingActive(false);
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
       }
-      console.log('[RFID] Polling detenido');
     }
     
     return () => {
@@ -219,76 +242,22 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
     return trimmedBytes.join('');
   }, []);
 
-  // Procesar lectura de tarjeta
-  const handleCardRead = useCallback((uid: string) => {
-    console.log('[RFID] handleCardRead llamado con UID:', uid);
-    const now = Date.now();
-    const normalizedUid = uid.trim().replace(/\s+/g, '').replace(/:/g, '').toUpperCase();
 
-    if (!normalizedUid || normalizedUid.length < 4) {
-      console.warn('[RFID] UID inválido después de normalización:', normalizedUid);
-      return;
-    }
-
-    if (normalizedUid === lastUid && (now - lastReadTimeRef.current) < DEBOUNCE_MS) {
-      console.log('[RFID] Lectura ignorada (debounce):', normalizedUid);
-      return;
-    }
-
-    console.log('[RFID] Nueva lectura de tarjeta:', {
-      uid: normalizedUid,
-      mode,
-      personId: personId ? 'presente' : 'ausente'
-    });
-
-    setLastUid(normalizedUid);
-    lastReadTimeRef.current = now;
-
-    if (onCardRead) {
-      console.log('[RFID] Llamando onCardRead callback');
-      onCardRead(normalizedUid);
-    }
-
-    // Si estamos en modo lectura y hay personId, asociar automáticamente
-    if (mode === 'read' && personId) {
-      console.log('[RFID] Asociando tarjeta automáticamente');
-      setRfidUid(normalizedUid);
-      handleAssociateRfid(normalizedUid);
-    } else {
-      console.log('[RFID] No se asocia automáticamente. Mode:', mode, 'personId:', personId ? 'presente' : 'ausente');
-    }
-  }, [lastUid, onCardRead, mode, personId]);
-
-  // Manejar eventos de input report
+  // Manejar eventos de input report (no usado actualmente, pero mantenido por si acaso)
   const handleInputReport = useCallback((event: HIDInputReportEvent) => {
-    console.log('[RFID] ⚡⚡⚡ INPUT REPORT RECIBIDO ⚡⚡⚡', {
-      reportId: event.reportId,
-      dataLength: event.data?.byteLength,
-      device: event.device?.productName,
-      timestamp: new Date().toISOString()
-    });
-
-    if (!event.data) {
-      console.warn('[RFID] Input report sin datos');
-      return;
-    }
+    if (!event.data) return;
 
     try {
       const buffer = new DataView(event.data.buffer);
       const dataArray = new Uint8Array(event.data.buffer);
       
-      // Log datos raw
-      console.log('[RFID] Datos raw:', Array.from(dataArray).map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase()).join(' '));
-      
       let uid = formatUidFromBuffer(buffer, 0);
-      console.log('[RFID] UID extraído (offset 0):', uid);
       
       if (!uid || uid.length < 4) {
         for (let offset = 1; offset <= 3 && offset < buffer.byteLength - 4; offset++) {
           const testUid = formatUidFromBuffer(buffer, offset);
           if (testUid && testUid.length >= 4) {
             uid = testUid;
-            console.log('[RFID] UID encontrado en offset', offset, ':', uid);
             break;
           }
         }
@@ -297,19 +266,15 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       if (!uid || uid.length < 4) {
         const allZeros = Array.from(dataArray).every(b => b === 0);
         if (allZeros) {
-          console.log('[RFID] Tarjeta detectada pero sin datos (todos ceros)');
           setReadEmpty(true);
-        } else {
-          console.warn('[RFID] No se pudo extraer UID válido. Datos:', Array.from(dataArray));
         }
         return;
       }
 
-      console.log('[RFID] UID válido detectado:', uid);
       setReadEmpty(false);
       handleCardRead(uid);
     } catch (error) {
-      console.error('[RFID] Error procesando input report:', error);
+      // Error silencioso
     }
   }, [formatUidFromBuffer, handleCardRead]);
 
@@ -339,18 +304,9 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       }
 
       const selectedDevice = devices[0];
-      console.log('[RFID] Dispositivo seleccionado:', {
-        productName: selectedDevice.productName,
-        vendorId: '0x' + selectedDevice.vendorId.toString(16),
-        productId: '0x' + selectedDevice.productId.toString(16),
-        opened: selectedDevice.opened,
-        collections: selectedDevice.collections?.length || 0
-      });
 
       if (!selectedDevice.opened) {
-        console.log('[RFID] Abriendo dispositivo...');
         await selectedDevice.open();
-        console.log('[RFID] Dispositivo abierto');
       }
 
       if (inputReportListenerRef.current) {
@@ -359,76 +315,30 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
 
       inputReportListenerRef.current = handleInputReport;
       selectedDevice.addEventListener('inputreport', handleInputReport);
-      console.log('[RFID] Listener de input report registrado');
       
-      // También escuchar eventos de desconexión para debug
-      selectedDevice.addEventListener('disconnect', () => {
-        console.log('[RFID] ⚠️ Dispositivo desconectado inesperadamente');
-      });
-      
-      // Intentar recibir feature reports para ver si hay datos ahí
-      if (selectedDevice.collections && selectedDevice.collections.length > 0) {
-        const collection = selectedDevice.collections[0];
-        if (collection.featureReports && collection.featureReports.length > 0) {
-          console.log('[RFID] Intentando recibir feature reports...');
-          for (const report of collection.featureReports) {
-            const reportId = report.reportId || 0;
-            selectedDevice.receiveFeatureReport(reportId).then((data) => {
-              console.log('[RFID] Feature report recibido:', Array.from(new Uint8Array(data.buffer)).map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase()).join(' '));
-            }).catch((err) => {
-              // Ignorar errores, es normal que no haya feature reports disponibles
-            });
-          }
-        }
-      }
-
       // Intentar enviar comandos de activación
       if (selectedDevice.collections && selectedDevice.collections.length > 0) {
         const collection = selectedDevice.collections[0];
-        console.log('[RFID] Collection encontrada:', {
-          usage: collection.usage,
-          usagePage: collection.usagePage,
-          inputReports: collection.inputReports?.length || 0,
-          outputReports: collection.outputReports?.length || 0
-        });
         
         if (collection.outputReports && collection.outputReports.length > 0) {
           for (const outputReport of collection.outputReports) {
             const reportId = outputReport.reportId || 0;
-            console.log('[RFID] Enviando comandos de activación con reportId:', reportId);
             const activationCommands = [
               new Uint8Array([0x01]),
               new Uint8Array([0x00]),
               new Uint8Array([reportId, 0x01]),
             ];
             
-            for (let i = 0; i < activationCommands.length; i++) {
-              const cmd = activationCommands[i];
+            for (const cmd of activationCommands) {
               try {
-                console.log('[RFID] Enviando comando de activación', i + 1, ':', Array.from(cmd).map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase()).join(' '));
                 await selectedDevice.sendReport(reportId, cmd.buffer);
-                console.log('[RFID] Comando de activación', i + 1, 'enviado exitosamente');
               } catch (err) {
-                console.warn('[RFID] Error enviando comando de activación', i + 1, ':', err);
+                // Ignorar errores
               }
             }
           }
-        } else {
-          console.warn('[RFID] No se encontraron output reports para activación');
         }
-      } else {
-        console.warn('[RFID] No se encontraron collections en el dispositivo');
       }
-
-      // IMPORTANTE: El dispositivo podría funcionar como teclado SOLO cuando NO está conectado vía WebHID
-      // Por eso enfocamos el input siempre, incluso si no está conectado vía WebHID
-      setTimeout(() => {
-        if (keyboardInputRef.current) {
-          keyboardInputRef.current.focus();
-          console.log('[RFID] Input enfocado - listo para capturar datos del teclado');
-          console.log('[RFID] NOTA: Si el dispositivo funciona como teclado, puede que necesite estar DESCONECTADO de WebHID');
-        }
-      }, 500);
 
       setDevice(selectedDevice);
       setStatus('connected');
@@ -553,19 +463,14 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
 
   // Escribir en tarjeta
   const writeToCard = useCallback(async () => {
-    console.log('[RFID] writeToCard llamado');
-    
     if (!device || !device.opened || status !== 'connected') {
-      console.warn('[RFID] Intento de escritura con dispositivo desconectado');
       setRfidMessage('El dispositivo no está conectado');
       return;
     }
 
     const idToWrite = writeId.trim() || generateAutoId();
-    console.log('[RFID] ID a escribir:', idToWrite);
     
     if (idToWrite.length !== 12 || !/^\d+$/.test(idToWrite)) {
-      console.warn('[RFID] ID inválido:', idToWrite);
       setRfidMessage('El ID debe tener exactamente 12 dígitos numéricos');
       return;
     }
@@ -573,7 +478,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
     setIsWriting(true);
     setRfidMessage('⚠️ Asegúrate de tener la tarjeta cerca del lector antes de continuar...');
 
-    // Pequeña pausa para que el usuario lea el mensaje
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
@@ -584,7 +488,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       }
 
       const writeBuffer = new Uint8Array(idBytes);
-      console.log('[RFID] Bytes a escribir:', Array.from(writeBuffer));
 
       if (device.collections && device.collections.length > 0) {
         const collection = device.collections[0];
@@ -593,18 +496,10 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
           const reportId = outputReport.reportId || 0;
           const commandBuffer = new Uint8Array([0x02, ...writeBuffer]);
           
-          console.log('[RFID] Enviando comando de escritura:', {
-            reportId,
-            command: Array.from(commandBuffer).map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase()).join(' ')
-          });
-          
           setRfidMessage('📤 Enviando comando de escritura...');
           
-          // Enviar comando de escritura
           await device.sendReport(reportId, commandBuffer.buffer);
-          console.log('[RFID] Comando de escritura enviado exitosamente');
           
-          // Esperar un momento para que el dispositivo procese el comando
           await new Promise(resolve => setTimeout(resolve, 1500));
 
           setIsWriting(false);
@@ -612,17 +507,14 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
           setWriteId('');
           setWriteId(generateAutoId());
         } else {
-          console.warn('[RFID] No se encontraron output reports para escritura');
           setIsWriting(false);
           setRfidMessage('El dispositivo no soporta escritura');
         }
       } else {
-        console.warn('[RFID] No se encontraron collections para escritura');
         setIsWriting(false);
         setRfidMessage('El dispositivo no soporta escritura');
       }
     } catch (error) {
-      console.error('[RFID] Error escribiendo:', error);
       setIsWriting(false);
       setRfidMessage('❌ Error al enviar comando de escritura. Verifica que la tarjeta esté cerca del lector y que el dispositivo esté conectado.');
     }
@@ -833,18 +725,14 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
               onInput={(e) => {
                 const target = e.target as HTMLInputElement;
                 const value = target.value;
-                console.log('[RFID] Input de teclado detectado (onInput):', value);
                 
                 if (value && value !== keyboardInputValueRef.current) {
                   keyboardInputValueRef.current = value;
                   setRfidUid(value);
                   setReadEmpty(false);
                   
-                  // Si el valor parece un UID (más de 4 caracteres), procesarlo
                   if (value.length >= 4) {
-                    console.log('[RFID] Procesando UID desde teclado:', value);
                     handleCardRead(value);
-                    // Limpiar después de un momento
                     setTimeout(() => {
                       if (keyboardInputRef.current) {
                         keyboardInputRef.current.value = '';
@@ -858,7 +746,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
               }}
               onChange={(e) => {
                 const value = e.target.value;
-                console.log('[RFID] Input de teclado detectado (onChange):', value);
                 
                 if (value && value !== keyboardInputValueRef.current) {
                   keyboardInputValueRef.current = value;
@@ -866,7 +753,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
                   setReadEmpty(false);
                   
                   if (value.length >= 4) {
-                    console.log('[RFID] Procesando UID desde teclado (onChange):', value);
                     handleCardRead(value);
                     setTimeout(() => {
                       if (keyboardInputRef.current) {
