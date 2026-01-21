@@ -345,25 +345,13 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
         console.warn('[RFID] No se encontraron collections en el dispositivo');
       }
 
+      // IMPORTANTE: El dispositivo podría funcionar como teclado SOLO cuando NO está conectado vía WebHID
+      // Por eso enfocamos el input siempre, incluso si no está conectado vía WebHID
       setTimeout(() => {
         if (keyboardInputRef.current) {
           keyboardInputRef.current.focus();
           console.log('[RFID] Input enfocado - listo para capturar datos del teclado');
-          
-          // Agregar listener global de teclado como respaldo
-          const handleGlobalKeyDown = (e: KeyboardEvent) => {
-            // Solo capturar si el input está enfocado o si es un carácter alfanumérico
-            if (keyboardInputRef.current && (document.activeElement === keyboardInputRef.current || /^[a-zA-Z0-9]$/.test(e.key))) {
-              console.log('[RFID] Tecla detectada globalmente:', e.key);
-            }
-          };
-          
-          window.addEventListener('keydown', handleGlobalKeyDown);
-          
-          // Limpiar listener al desconectar
-          return () => {
-            window.removeEventListener('keydown', handleGlobalKeyDown);
-          };
+          console.log('[RFID] NOTA: Si el dispositivo funciona como teclado, puede que necesite estar DESCONECTADO de WebHID');
         }
       }, 500);
 
@@ -713,58 +701,89 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
             )}
           </button>
           
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="space-y-2">
+            <p className="text-xs text-gray-600">
+              💡 Si el dispositivo funciona como teclado, pasa la tarjeta y el UID aparecerá automáticamente
+            </p>
             <input
               ref={keyboardInputRef}
-              value={rfidUid}
-              onChange={(e) => {
-                const value = e.target.value;
-                setRfidUid(value);
-                keyboardInputValueRef.current = value;
+              type="text"
+              autoFocus={mode === 'read'}
+              placeholder="El UID aparecerá aquí cuando pases la tarjeta..."
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              onInput={(e) => {
+                const target = e.target as HTMLInputElement;
+                const value = target.value;
+                console.log('[RFID] Input de teclado detectado (onInput):', value);
                 
-                // Detectar si es lectura rápida de tarjeta (dispositivo escribiendo)
-                const now = Date.now();
-                const timeSinceLastKey = now - lastKeyTimeRef.current;
-                lastKeyTimeRef.current = now;
-                
-                // Si se está escribiendo rápidamente (menos de 150ms entre caracteres)
-                // y el valor tiene al menos 4 caracteres, probablemente es una tarjeta RFID
-                if (timeSinceLastKey < AUTO_READ_DELAY_MS && value.length >= 4) {
-                  // Limpiar timeout anterior
-                  if (autoReadTimeoutRef.current) {
-                    clearTimeout(autoReadTimeoutRef.current);
-                  }
+                if (value && value !== keyboardInputValueRef.current) {
+                  keyboardInputValueRef.current = value;
+                  setRfidUid(value);
+                  setReadEmpty(false);
                   
-                  // Esperar un poco más para ver si sigue escribiendo
-                  autoReadTimeoutRef.current = setTimeout(() => {
-                    const finalValue = keyboardInputValueRef.current.trim().replace(/\s+/g, '').replace(/:/g, '').toUpperCase();
-                    if (finalValue.length >= 4) {
-                      console.log('[RFID] Detección automática de tarjeta vía teclado:', finalValue);
-                      handleCardRead(finalValue);
-                    }
-                  }, AUTO_READ_DELAY_MS);
+                  // Si el valor parece un UID (más de 4 caracteres), procesarlo
+                  if (value.length >= 4) {
+                    console.log('[RFID] Procesando UID desde teclado:', value);
+                    handleCardRead(value);
+                    // Limpiar después de un momento
+                    setTimeout(() => {
+                      if (keyboardInputRef.current) {
+                        keyboardInputRef.current.value = '';
+                        keyboardInputValueRef.current = '';
+                        setRfidUid('');
+                        keyboardInputRef.current.focus();
+                      }
+                    }, 500);
+                  }
                 }
               }}
+              onChange={(e) => {
+                const value = e.target.value;
+                console.log('[RFID] Input de teclado detectado (onChange):', value);
+                
+                if (value && value !== keyboardInputValueRef.current) {
+                  keyboardInputValueRef.current = value;
+                  setRfidUid(value);
+                  setReadEmpty(false);
+                  
+                  if (value.length >= 4) {
+                    console.log('[RFID] Procesando UID desde teclado (onChange):', value);
+                    handleCardRead(value);
+                    setTimeout(() => {
+                      if (keyboardInputRef.current) {
+                        keyboardInputRef.current.value = '';
+                        keyboardInputValueRef.current = '';
+                        setRfidUid('');
+                        keyboardInputRef.current.focus();
+                      }
+                    }, 500);
+                  }
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && keyboardInputValueRef.current.trim()) {
+                  const value = keyboardInputValueRef.current.trim();
+                  if (value.length >= 4) {
+                    handleCardRead(value);
+                  } else if (value && personId) {
+                    handleAssociateRfid(value);
+                  }
+                }
+              }}
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              value={rfidUid}
+              onChange={(e) => setRfidUid(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && rfidUid.trim()) {
                   handleAssociateRfid();
                 }
-                // Registrar tiempo de última tecla
-                lastKeyTimeRef.current = Date.now();
-              }}
-              onPaste={(e) => {
-                // Si se pega un UID, procesarlo después de un pequeño delay
-                setTimeout(() => {
-                  const value = e.currentTarget.value.trim().replace(/\s+/g, '').replace(/:/g, '').toUpperCase();
-                  if (value.length >= 4) {
-                    console.log('[RFID] UID pegado:', value);
-                    handleCardRead(value);
-                  }
-                }, 100);
               }}
               disabled={status !== 'connected'}
               className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent min-w-0 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
-              placeholder={status === 'connected' ? "Pasa la tarjeta por el lector o ingresa UID manualmente" : "Conecta el dispositivo primero"}
+              placeholder="O ingresa UID manualmente aquí"
             />
             <button
               type="button"
