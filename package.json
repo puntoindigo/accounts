@@ -6,9 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "rfid:read": "node scripts/rfid-reader.js",
-    "rfid:read:prod": "SERVER_URL=https://accounts.puntoindigo.com node scripts/rfid-reader.js"
+    "lint": "eslint"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
@@ -24,7 +22,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
-    "nfc-pcsc": "^0.8.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

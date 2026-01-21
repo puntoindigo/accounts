@@ -98,12 +98,8 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
   const [rfidLoading, setRfidLoading] = useState(false);
   const [rfidMessage, setRfidMessage] = useState<string | null>(null);
   const [rfidCards, setRfidCards] = useState<RfidCard[]>([]);
-  const [lastReadCard, setLastReadCard] = useState<{ uid: string; timestamp: string } | null>(null);
-  const [pollingActive, setPollingActive] = useState(false);
   
   const keyboardInputRef = useRef<HTMLInputElement>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastPolledTimestampRef = useRef<string>('');
   const keyboardInputValueRef = useRef<string>('');
   const inputReportListenerRef = useRef<((event: HIDInputReportEvent) => void) | null>(null);
   const lastReadTimeRef = useRef<number>(0);
@@ -208,50 +204,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
     }
   }, [lastUid, onCardRead, mode, personId, handleAssociateRfid]);
 
-  // Polling para obtener último UID leído desde el script Node.js
-  const pollLastRead = useCallback(async () => {
-    try {
-      const response = await fetch('/api/rfid/last-read');
-      const data = await response.json();
-      
-      if (data.success && data.card) {
-        // Solo procesar si es un UID nuevo (timestamp diferente)
-        if (data.card.timestamp !== lastPolledTimestampRef.current) {
-          lastPolledTimestampRef.current = data.card.timestamp;
-          setLastReadCard(data.card);
-          
-          // Procesar el UID automáticamente
-          if (mode === 'read' && data.card.uid) {
-            handleCardRead(data.card.uid);
-          }
-        }
-      }
-    } catch (error) {
-      // Error silencioso en polling
-    }
-  }, [mode, handleCardRead]);
-
-  // Iniciar/detener polling cuando está en modo lectura
-  useEffect(() => {
-    if (mode === 'read' && !pollingActive) {
-      setPollingActive(true);
-      // Polling cada 1 segundo
-      pollingIntervalRef.current = setInterval(pollLastRead, 1000);
-    } else if (mode !== 'read' && pollingActive) {
-      setPollingActive(false);
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    }
-    
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
-  }, [mode, pollingActive, pollLastRead]);
 
   // Inicializar ID automático cuando cambia a modo escritura
   useEffect(() => {
@@ -596,11 +548,6 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
             <p className="text-xs text-blue-700">
               Opción 2: Ingresa el UID manualmente abajo
             </p>
-            {pollingActive && lastReadCard && (
-              <p className="text-xs text-green-700 font-medium mt-2">
-                ✅ Última lectura: {lastReadCard.uid}
-              </p>
-            )}
           </div>
           
           <div className="space-y-2">
