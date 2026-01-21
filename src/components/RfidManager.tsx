@@ -604,6 +604,14 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
 
       {/* Estado de conexión - Toggle con icono */}
       <div className="mb-4">
+        <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-xs text-blue-800 mb-1">
+            💡 <strong>Importante:</strong> Si el dispositivo funciona como teclado, puede que necesite estar <strong>desconectado</strong> de WebHID para leer tarjetas.
+          </p>
+          <p className="text-xs text-blue-700">
+            Usa WebHID solo para escribir. Para leer, desconecta y pasa la tarjeta.
+          </p>
+        </div>
         <button
           type="button"
           onClick={status === 'connected' ? disconnectDevice : connectDevice}
