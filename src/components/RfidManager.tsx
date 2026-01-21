@@ -99,8 +99,12 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
   const [rfidLoading, setRfidLoading] = useState(false);
   const [rfidMessage, setRfidMessage] = useState<string | null>(null);
   const [rfidCards, setRfidCards] = useState<RfidCard[]>([]);
+  const [lastReadCard, setLastReadCard] = useState<{ uid: string; timestamp: string } | null>(null);
+  const [pollingActive, setPollingActive] = useState(false);
   
   const keyboardInputRef = useRef<HTMLInputElement>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastPolledTimestampRef = useRef<string>('');
   const keyboardInputValueRef = useRef<string>('');
   const inputReportListenerRef = useRef<((event: HIDInputReportEvent) => void) | null>(null);
   const lastReadTimeRef = useRef<number>(0);
@@ -136,6 +140,55 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
   useEffect(() => {
     loadRfidCards();
   }, [loadRfidCards]);
+
+  // Polling para obtener último UID leído desde el script Node.js
+  const pollLastRead = useCallback(async () => {
+    try {
+      const response = await fetch('/api/rfid/last-read');
+      const data = await response.json();
+      
+      if (data.success && data.card) {
+        // Solo procesar si es un UID nuevo (timestamp diferente)
+        if (data.card.timestamp !== lastPolledTimestampRef.current) {
+          lastPolledTimestampRef.current = data.card.timestamp;
+          setLastReadCard(data.card);
+          
+          console.log('[RFID] Nuevo UID leído desde script Node.js:', data.card.uid);
+          
+          // Procesar el UID automáticamente
+          if (mode === 'read' && data.card.uid) {
+            handleCardRead(data.card.uid);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[RFID] Error en polling:', error);
+    }
+  }, [mode, handleCardRead]);
+
+  // Iniciar/detener polling cuando está en modo lectura
+  useEffect(() => {
+    if (mode === 'read' && !pollingActive) {
+      setPollingActive(true);
+      // Polling cada 1 segundo
+      pollingIntervalRef.current = setInterval(pollLastRead, 1000);
+      console.log('[RFID] Polling iniciado para lectura de tarjetas');
+    } else if (mode !== 'read' && pollingActive) {
+      setPollingActive(false);
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      console.log('[RFID] Polling detenido');
+    }
+    
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [mode, pollingActive, pollLastRead]);
 
   // Inicializar ID automático cuando cambia a modo escritura
   useEffect(() => {
@@ -738,18 +791,28 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       {/* Modo Leer */}
       {mode === 'read' && (
         <div className="space-y-4">
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-xs text-red-800 font-medium mb-1">
-              ⚠️ Limitación del Dispositivo
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-800 font-medium mb-1">
+              📡 Lectura vía Script Node.js
             </p>
-            <p className="text-xs text-red-700">
-              Este dispositivo <strong>no soporta lectura vía WebHID</strong>. 
-              Detecta tarjetas (beep/luz) pero no envía datos.
+            <p className="text-xs text-blue-700 mb-2">
+              Este dispositivo no soporta lectura vía WebHID. Para leer tarjetas:
             </p>
-            <p className="text-xs text-red-600 mt-2">
-              💡 <strong>Solución:</strong> Usa un script Node.js con PC/SC para lectura, 
-              o ingresa el UID manualmente abajo.
-            </p>
+            <ol className="text-xs text-blue-700 list-decimal list-inside space-y-1 mb-2">
+              <li>Ejecuta: <code className="bg-blue-100 px-1 rounded">node scripts/rfid-reader.js</code></li>
+              <li>El script detectará tarjetas automáticamente</li>
+              <li>Los UIDs aparecerán aquí automáticamente</li>
+            </ol>
+            {pollingActive && (
+              <p className="text-xs text-green-700 font-medium">
+                ✅ Polling activo - Esperando tarjetas...
+              </p>
+            )}
+            {lastReadCard && (
+              <p className="text-xs text-gray-600 mt-2">
+                Última lectura: {lastReadCard.uid} ({new Date(lastReadCard.timestamp).toLocaleTimeString()})
+              </p>
+            )}
           </div>
           
           <div className="space-y-2">
