@@ -208,10 +208,11 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
 
   // Manejar eventos de input report
   const handleInputReport = useCallback((event: HIDInputReportEvent) => {
-    console.log('[RFID] Input report recibido:', {
+    console.log('[RFID] ⚡⚡⚡ INPUT REPORT RECIBIDO ⚡⚡⚡', {
       reportId: event.reportId,
       dataLength: event.data?.byteLength,
-      device: event.device?.productName
+      device: event.device?.productName,
+      timestamp: new Date().toISOString()
     });
 
     if (!event.data) {
@@ -306,6 +307,27 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       inputReportListenerRef.current = handleInputReport;
       selectedDevice.addEventListener('inputreport', handleInputReport);
       console.log('[RFID] Listener de input report registrado');
+      
+      // También escuchar eventos de desconexión para debug
+      selectedDevice.addEventListener('disconnect', () => {
+        console.log('[RFID] ⚠️ Dispositivo desconectado inesperadamente');
+      });
+      
+      // Intentar recibir feature reports para ver si hay datos ahí
+      if (selectedDevice.collections && selectedDevice.collections.length > 0) {
+        const collection = selectedDevice.collections[0];
+        if (collection.featureReports && collection.featureReports.length > 0) {
+          console.log('[RFID] Intentando recibir feature reports...');
+          for (const report of collection.featureReports) {
+            const reportId = report.reportId || 0;
+            selectedDevice.receiveFeatureReport(reportId).then((data) => {
+              console.log('[RFID] Feature report recibido:', Array.from(new Uint8Array(data.buffer)).map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase()).join(' '));
+            }).catch((err) => {
+              // Ignorar errores, es normal que no haya feature reports disponibles
+            });
+          }
+        }
+      }
 
       // Intentar enviar comandos de activación
       if (selectedDevice.collections && selectedDevice.collections.length > 0) {
@@ -406,11 +428,17 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
           const reportId = outputReport.reportId || 0;
           
           // Probar diferentes comandos de lectura
+          // Algunos dispositivos requieren comandos específicos para activar lectura continua
           const readCommands = [
             new Uint8Array([0x03]), // Comando de lectura común
             new Uint8Array([0x04]), // Alternativa
             new Uint8Array([reportId, 0x03]), // Con reportId
             new Uint8Array([0x01]), // Re-activación
+            new Uint8Array([0x05]), // Otro comando común
+            new Uint8Array([0x06]), // Otro comando común
+            new Uint8Array([0xFF]), // Comando de reset/activación
+            new Uint8Array([0x02, 0x00]), // Comando de lectura con parámetro
+            new Uint8Array([0x03, 0x01]), // Comando de lectura con flag
           ];
           
           console.log('[RFID] Enviando comandos de lectura con reportId:', reportId);
@@ -428,15 +456,19 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
             }
           }
           
-          setRfidMessage('📖 Comando de lectura enviado. Acerca la tarjeta al lector...');
+          setRfidMessage('📖 Comando de lectura enviado. Acerca la tarjeta al lector ahora...');
           
-          // Esperar un momento para recibir respuesta
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Esperar más tiempo para recibir respuesta y dar tiempo al usuario
+          console.log('[RFID] Esperando respuesta del dispositivo... (5 segundos)');
+          await new Promise(resolve => setTimeout(resolve, 5000));
           
           setIsReading(false);
           
           if (!lastUid) {
-            setRfidMessage('⚠️ No se detectó ninguna tarjeta. Asegúrate de tener la tarjeta cerca del lector y vuelve a intentar.');
+            setRfidMessage('⚠️ No se detectó ninguna tarjeta después de enviar comandos.\n\n💡 Prueba:\n1. Desconecta el dispositivo de WebHID\n2. Pasa la tarjeta directamente (funcionará como teclado)\n3. O verifica que la tarjeta esté cerca del lector');
+            console.warn('[RFID] No se recibió ningún input report después de enviar comandos de lectura');
+          } else {
+            setRfidMessage(`✅ Tarjeta detectada: ${lastUid}`);
           }
         } else {
           setIsReading(false);
@@ -710,14 +742,19 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
           </button>
           
           <div className="space-y-2">
-            <p className="text-xs text-gray-600">
-              💡 Si el dispositivo funciona como teclado, pasa la tarjeta y el UID aparecerá automáticamente
-            </p>
+            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-800 font-medium mb-1">
+                🔍 Modo de Lectura
+              </p>
+              <p className="text-xs text-yellow-700">
+                Si el dispositivo funciona como teclado, <strong>desconéctalo de WebHID</strong> primero, luego pasa la tarjeta y el UID aparecerá automáticamente aquí.
+              </p>
+            </div>
             <input
               ref={keyboardInputRef}
               type="text"
-              autoFocus={mode === 'read'}
-              placeholder="El UID aparecerá aquí cuando pases la tarjeta..."
+              autoFocus={mode === 'read' && status !== 'connected'}
+              placeholder={status === 'connected' ? "Desconecta WebHID primero, luego pasa la tarjeta..." : "Pasa la tarjeta por el lector (el UID aparecerá aquí)...")
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               onInput={(e) => {
                 const target = e.target as HTMLInputElement;
