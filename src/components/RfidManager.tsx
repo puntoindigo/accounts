@@ -104,7 +104,10 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
   const keyboardInputValueRef = useRef<string>('');
   const inputReportListenerRef = useRef<((event: HIDInputReportEvent) => void) | null>(null);
   const lastReadTimeRef = useRef<number>(0);
+  const lastKeyTimeRef = useRef<number>(0);
+  const autoReadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const DEBOUNCE_MS = 500;
+  const AUTO_READ_DELAY_MS = 150; // Si no hay tecla en 150ms, asumir que terminó de leer
 
   const isWebHIDAvailable = typeof navigator !== 'undefined' && 'hid' in navigator;
 
@@ -345,6 +348,22 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       setTimeout(() => {
         if (keyboardInputRef.current) {
           keyboardInputRef.current.focus();
+          console.log('[RFID] Input enfocado - listo para capturar datos del teclado');
+          
+          // Agregar listener global de teclado como respaldo
+          const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            // Solo capturar si el input está enfocado o si es un carácter alfanumérico
+            if (keyboardInputRef.current && (document.activeElement === keyboardInputRef.current || /^[a-zA-Z0-9]$/.test(e.key))) {
+              console.log('[RFID] Tecla detectada globalmente:', e.key);
+            }
+          };
+          
+          window.addEventListener('keydown', handleGlobalKeyDown);
+          
+          // Limpiar listener al desconectar
+          return () => {
+            window.removeEventListener('keydown', handleGlobalKeyDown);
+          };
         }
       }, 500);
 
@@ -702,18 +721,50 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
                 const value = e.target.value;
                 setRfidUid(value);
                 keyboardInputValueRef.current = value;
-                if (value.length >= 4) {
-                  handleCardRead(value);
+                
+                // Detectar si es lectura rápida de tarjeta (dispositivo escribiendo)
+                const now = Date.now();
+                const timeSinceLastKey = now - lastKeyTimeRef.current;
+                lastKeyTimeRef.current = now;
+                
+                // Si se está escribiendo rápidamente (menos de 150ms entre caracteres)
+                // y el valor tiene al menos 4 caracteres, probablemente es una tarjeta RFID
+                if (timeSinceLastKey < AUTO_READ_DELAY_MS && value.length >= 4) {
+                  // Limpiar timeout anterior
+                  if (autoReadTimeoutRef.current) {
+                    clearTimeout(autoReadTimeoutRef.current);
+                  }
+                  
+                  // Esperar un poco más para ver si sigue escribiendo
+                  autoReadTimeoutRef.current = setTimeout(() => {
+                    const finalValue = keyboardInputValueRef.current.trim().replace(/\s+/g, '').replace(/:/g, '').toUpperCase();
+                    if (finalValue.length >= 4) {
+                      console.log('[RFID] Detección automática de tarjeta vía teclado:', finalValue);
+                      handleCardRead(finalValue);
+                    }
+                  }, AUTO_READ_DELAY_MS);
                 }
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && rfidUid.trim()) {
                   handleAssociateRfid();
                 }
+                // Registrar tiempo de última tecla
+                lastKeyTimeRef.current = Date.now();
+              }}
+              onPaste={(e) => {
+                // Si se pega un UID, procesarlo después de un pequeño delay
+                setTimeout(() => {
+                  const value = e.currentTarget.value.trim().replace(/\s+/g, '').replace(/:/g, '').toUpperCase();
+                  if (value.length >= 4) {
+                    console.log('[RFID] UID pegado:', value);
+                    handleCardRead(value);
+                  }
+                }, 100);
               }}
               disabled={status !== 'connected'}
               className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent min-w-0 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
-              placeholder={status === 'connected' ? "UID de tarjeta RFID (o usa el botón Leer)" : "Conecta el dispositivo primero"}
+              placeholder={status === 'connected' ? "Pasa la tarjeta por el lector o ingresa UID manualmente" : "Conecta el dispositivo primero"}
             />
             <button
               type="button"
