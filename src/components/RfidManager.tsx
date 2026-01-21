@@ -93,6 +93,7 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
   const [lastUid, setLastUid] = useState<string>('');
   const [writeId, setWriteId] = useState<string>('');
   const [isWriting, setIsWriting] = useState(false);
+  const [isReading, setIsReading] = useState(false);
   const [readEmpty, setReadEmpty] = useState(false);
   const [rfidUid, setRfidUid] = useState('');
   const [rfidLoading, setRfidLoading] = useState(false);
@@ -379,6 +380,72 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
     }
   }, [device]);
 
+  // Trigger lectura manual
+  const triggerRead = useCallback(async () => {
+    if (!device || !device.opened || status !== 'connected') {
+      setRfidMessage('El dispositivo no está conectado');
+      return;
+    }
+
+    setIsReading(true);
+    setRfidMessage('📖 Enviando comando de lectura...');
+    setReadEmpty(false);
+
+    try {
+      if (device.collections && device.collections.length > 0) {
+        const collection = device.collections[0];
+        if (collection.outputReports && collection.outputReports.length > 0) {
+          const outputReport = collection.outputReports[0];
+          const reportId = outputReport.reportId || 0;
+          
+          // Probar diferentes comandos de lectura
+          const readCommands = [
+            new Uint8Array([0x03]), // Comando de lectura común
+            new Uint8Array([0x04]), // Alternativa
+            new Uint8Array([reportId, 0x03]), // Con reportId
+            new Uint8Array([0x01]), // Re-activación
+          ];
+          
+          console.log('[RFID] Enviando comandos de lectura con reportId:', reportId);
+          
+          for (let i = 0; i < readCommands.length; i++) {
+            const cmd = readCommands[i];
+            try {
+              console.log('[RFID] Enviando comando de lectura', i + 1, ':', Array.from(cmd).map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase()).join(' '));
+              await device.sendReport(reportId, cmd.buffer);
+              console.log('[RFID] Comando de lectura', i + 1, 'enviado exitosamente');
+              // Pequeña pausa entre comandos
+              await new Promise(resolve => setTimeout(resolve, 100));
+            } catch (err) {
+              console.warn('[RFID] Error enviando comando de lectura', i + 1, ':', err);
+            }
+          }
+          
+          setRfidMessage('📖 Comando de lectura enviado. Acerca la tarjeta al lector...');
+          
+          // Esperar un momento para recibir respuesta
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          setIsReading(false);
+          
+          if (!lastUid) {
+            setRfidMessage('⚠️ No se detectó ninguna tarjeta. Asegúrate de tener la tarjeta cerca del lector y vuelve a intentar.');
+          }
+        } else {
+          setIsReading(false);
+          setRfidMessage('El dispositivo no soporta lectura');
+        }
+      } else {
+        setIsReading(false);
+        setRfidMessage('Error: No se encontraron collections para lectura');
+      }
+    } catch (error) {
+      console.error('[RFID] Error en lectura:', error);
+      setIsReading(false);
+      setRfidMessage('❌ Error al enviar comando de lectura');
+    }
+  }, [device, status, lastUid]);
+
   // Escribir en tarjeta
   const writeToCard = useCallback(async () => {
     console.log('[RFID] writeToCard llamado');
@@ -611,6 +678,22 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
       {/* Modo Leer */}
       {mode === 'read' && (
         <div className="space-y-4">
+          <button
+            type="button"
+            onClick={triggerRead}
+            disabled={isReading || !device || status !== 'connected'}
+            className="w-full px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {isReading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Leyendo...
+              </span>
+            ) : (
+              'Leer Tarjeta'
+            )}
+          </button>
+          
           <div className="flex flex-col sm:flex-row gap-2">
             <input
               ref={keyboardInputRef}
@@ -630,7 +713,7 @@ export default function RfidManager({ personId, onCardRead, onCardAssociated }: 
               }}
               disabled={status !== 'connected'}
               className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent min-w-0 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
-              placeholder={status === 'connected' ? "UID de tarjeta RFID" : "Conecta el dispositivo primero"}
+              placeholder={status === 'connected' ? "UID de tarjeta RFID (o usa el botón Leer)" : "Conecta el dispositivo primero"}
             />
             <button
               type="button"
