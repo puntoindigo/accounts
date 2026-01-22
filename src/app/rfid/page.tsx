@@ -1,3 +1,5 @@
+// RFID deshabilitado temporalmente - todo el componente comentado
+/*
 'use client';
 
 import { useEffect, useRef, useState } from 'react';

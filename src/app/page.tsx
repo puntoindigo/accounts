@@ -5,7 +5,7 @@ import { signIn, signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import FaceRecognitionAutoCapture from '@/components/biometric/FaceRecognitionAutoCapture';
 import FaceRegistrationPicker from '@/components/biometric/FaceRegistrationPicker';
-import RfidManager from '@/components/RfidManager';
+// import RfidManager from '@/components/RfidManager'; // RFID deshabilitado temporalmente
 import { useSearchParams } from 'next/navigation';
 
 interface Person {
@@ -78,11 +78,12 @@ function LoginGate({
 }) {
   const searchParams = useSearchParams();
   const [loginMethod, setLoginMethod] = useState<'google' | 'face' | 'rfid'>('google');
-  const [rfidUid, setRfidUid] = useState('');
-  const [rfidLoading, setRfidLoading] = useState(false);
-  const [rfidMessage, setRfidMessage] = useState<string | null>(null);
-  const [rfidAvailable, setRfidAvailable] = useState<boolean | null>(null);
-  const rfidInputRef = useRef<HTMLInputElement>(null);
+  // RFID deshabilitado temporalmente
+  // const [rfidUid, setRfidUid] = useState('');
+  // const [rfidLoading, setRfidLoading] = useState(false);
+  // const [rfidMessage, setRfidMessage] = useState<string | null>(null);
+  // const [rfidAvailable, setRfidAvailable] = useState<boolean | null>(null);
+  // const rfidInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const error = searchParams?.get('error');
@@ -91,35 +92,37 @@ function LoginGate({
     }
   }, [searchParams, setAuthMessage]);
 
-  useEffect(() => {
-    rfidInputRef.current?.focus();
-    fetch('/api/rfid/status', { cache: 'no-store' })
-      .then(response => response.json())
-      .then(data => setRfidAvailable(Boolean(data?.available)))
-      .catch(() => setRfidAvailable(false));
-  }, []);
+  // RFID deshabilitado temporalmente
+  // useEffect(() => {
+  //   rfidInputRef.current?.focus();
+  //   fetch('/api/rfid/status', { cache: 'no-store' })
+  //     .then(response => response.json())
+  //     .then(data => setRfidAvailable(Boolean(data?.available)))
+  //     .catch(() => setRfidAvailable(false));
+  // }, []);
 
-  const handleRfidLogin = async () => {
-    if (!rfidUid.trim()) {
-      setRfidMessage('Ingresá un UID válido.');
-      return;
-    }
-    setRfidLoading(true);
-    setRfidMessage(null);
-    try {
-      const result = await signIn('rfid', {
-        uid: rfidUid.trim(),
-        redirect: false
-      });
-      if (result?.error) {
-        setRfidMessage('UID no válido o tarjeta inactiva.');
-      }
-    } catch {
-      setRfidMessage('Error al validar la tarjeta.');
-    } finally {
-      setRfidLoading(false);
-    }
-  };
+  // RFID deshabilitado temporalmente
+  // const handleRfidLogin = async () => {
+  //   if (!rfidUid.trim()) {
+  //     setRfidMessage('Ingresá un UID válido.');
+  //     return;
+  //   }
+  //   setRfidLoading(true);
+  //   setRfidMessage(null);
+  //   try {
+  //     const result = await signIn('rfid', {
+  //       uid: rfidUid.trim(),
+  //       redirect: false
+  //     });
+  //     if (result?.error) {
+  //       setRfidMessage('UID no válido o tarjeta inactiva.');
+  //     }
+  //   } catch {
+  //     setRfidMessage('Error al validar la tarjeta.');
+  //   } finally {
+  //     setRfidLoading(false);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
@@ -153,7 +156,8 @@ function LoginGate({
             >
               Facial
         </button>
-            <button
+            {/* RFID deshabilitado temporalmente */}
+            {/* <button
               type="button"
               onClick={() => setLoginMethod('rfid')}
               className={`flex-1 py-3 text-sm font-medium transition ${
@@ -163,7 +167,7 @@ function LoginGate({
               }`}
             >
               RFID
-            </button>
+            </button> */}
         </div>
 
           <div className="pt-4">
@@ -197,7 +201,8 @@ function LoginGate({
               </div>
             )}
 
-            {loginMethod === 'rfid' && (
+            {/* RFID deshabilitado temporalmente */}
+            {/* {loginMethod === 'rfid' && (
               <div className="space-y-3">
                 <input
                   ref={rfidInputRef}
@@ -230,7 +235,7 @@ function LoginGate({
                   <p className="text-xs text-red-600 text-center">{rfidMessage}</p>
                 )}
               </div>
-            )}
+            )} */}
           </div>
         </div>
 
@@ -287,7 +292,7 @@ export default function Home() {
   const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({ gmailUser: '', nombre: '', empresa: '' });
   const [showCreatePerson, setShowCreatePerson] = useState(false);
-  const [createPersonStep, setCreatePersonStep] = useState<'data' | 'face' | 'rfid' | 'complete'>('data');
+  const [createPersonStep, setCreatePersonStep] = useState<'data' | 'face' | 'rfid' | 'complete'>('data'); // 'rfid' deshabilitado temporalmente
   const [newPersonId, setNewPersonId] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
@@ -307,11 +312,12 @@ export default function Home() {
   const [showSessionActions, setShowSessionActions] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showRegisterCapture, setShowRegisterCapture] = useState(true);
-  const [rfidCards, setRfidCards] = useState<RfidCard[]>([]);
-  const [rfidUid, setRfidUid] = useState('');
-  const [rfidMessage, setRfidMessage] = useState<string | null>(null);
-  const [rfidLoading, setRfidLoading] = useState(false);
-  const [rfidDeleteCard, setRfidDeleteCard] = useState<RfidCard | null>(null);
+  // RFID deshabilitado temporalmente
+  // const [rfidCards, setRfidCards] = useState<RfidCard[]>([]);
+  const [rfidUid, setRfidUid] = useState(''); // Mantenido para el paso de creación (comentado)
+  // const [rfidMessage, setRfidMessage] = useState<string | null>(null);
+  // const [rfidLoading, setRfidLoading] = useState(false);
+  // const [rfidDeleteCard, setRfidDeleteCard] = useState<RfidCard | null>(null);
   const [personsVisibleCount, setPersonsVisibleCount] = useState(PERSONS_PAGE_SIZE);
   const [activityVisibleCount, setActivityVisibleCount] = useState(ACTIVITY_PAGE_SIZE);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -582,89 +588,91 @@ export default function Home() {
     }
   };
 
-  const loadRfidCards = useCallback(async (personId: string) => {
-    try {
-      const response = await fetch(`/api/rfid/person/${personId}`, { cache: 'no-store' });
-      const data = await response.json();
-      setRfidCards(Array.isArray(data.cards) ? data.cards : []);
-    } catch {
-      setRfidCards([]);
-    }
-  }, []);
+  // RFID deshabilitado temporalmente
+  // const loadRfidCards = useCallback(async (personId: string) => {
+  //   try {
+  //     const response = await fetch(`/api/rfid/person/${personId}`, { cache: 'no-store' });
+  //     const data = await response.json();
+  //     setRfidCards(Array.isArray(data.cards) ? data.cards : []);
+  //   } catch {
+  //     setRfidCards([]);
+  //   }
+  // }, []);
 
-  useEffect(() => {
-    if (selectedPerson) {
-      loadRfidCards(selectedPerson.id);
-    } else {
-      setRfidCards([]);
-    }
-  }, [selectedPerson, loadRfidCards]);
+  // useEffect(() => {
+  //   if (selectedPerson) {
+  //     loadRfidCards(selectedPerson.id);
+  //   } else {
+  //     setRfidCards([]);
+  //   }
+  // }, [selectedPerson, loadRfidCards]);
 
-  const handleAssociateRfid = async () => {
-    if (!selectedPerson || !rfidUid.trim()) {
-      setRfidMessage('Ingresá un UID válido.');
-      return;
-    }
-    setRfidLoading(true);
-    setRfidMessage(null);
-    try {
-      const response = await fetch('/api/rfid/associate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personId: selectedPerson.id, uid: rfidUid.trim() })
-    });
-    const data = await response.json();
-    if (!response.ok) {
-        setRfidMessage(data?.error || 'No se pudo asociar la tarjeta.');
-      return;
-    }
-      setRfidUid('');
-      await loadRfidCards(selectedPerson.id);
-    } catch {
-      setRfidMessage('No se pudo asociar la tarjeta.');
-    } finally {
-      setRfidLoading(false);
-    }
-  };
+  // RFID deshabilitado temporalmente
+  // const handleAssociateRfid = async () => {
+  //   if (!selectedPerson || !rfidUid.trim()) {
+  //     setRfidMessage('Ingresá un UID válido.');
+  //     return;
+  //   }
+  //   setRfidLoading(true);
+  //   setRfidMessage(null);
+  //   try {
+  //     const response = await fetch('/api/rfid/associate', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ personId: selectedPerson.id, uid: rfidUid.trim() })
+  //     });
+  //     const data = await response.json();
+  //     if (!response.ok) {
+  //       setRfidMessage(data?.error || 'No se pudo asociar la tarjeta.');
+  //     return;
+  //   }
+  //     setRfidUid('');
+  //     await loadRfidCards(selectedPerson.id);
+  //   } catch {
+  //     setRfidMessage('No se pudo asociar la tarjeta.');
+  //   } finally {
+  //     setRfidLoading(false);
+  //   }
+  // };
 
-  const handleToggleRfid = async (cardId: string, active: boolean) => {
-    setRfidLoading(true);
-    try {
-      const response = await fetch(`/api/rfid/${cardId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active })
-      });
-      if (response.ok && selectedPerson) {
-        await loadRfidCards(selectedPerson.id);
-      }
-    } catch {
-      setRfidMessage('No se pudo actualizar la tarjeta.');
-    } finally {
-      setRfidLoading(false);
-    }
-  };
+  // const handleToggleRfid = async (cardId: string, active: boolean) => {
+  //   setRfidLoading(true);
+  //   try {
+  //     const response = await fetch(`/api/rfid/${cardId}`, {
+  //       method: 'PATCH',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ active })
+  //     });
+  //     if (response.ok && selectedPerson) {
+  //       await loadRfidCards(selectedPerson.id);
+  //     }
+  //   } catch {
+  //     setRfidMessage('No se pudo actualizar la tarjeta.');
+  //   } finally {
+  //     setRfidLoading(false);
+  //   }
+  // };
 
-  const handleDeleteRfid = async (cardId: string) => {
-    if (!selectedPerson) return;
-    setRfidLoading(true);
-    try {
-      const response = await fetch(`/api/rfid/${cardId}`, {
-        method: 'DELETE'
-      });
-      const data = await response.json();
-      if (!response.ok || !data?.deleted) {
-        setRfidMessage(data?.error || 'No se pudo eliminar la tarjeta.');
-        return;
-      }
-      setRfidDeleteCard(null);
-      await loadRfidCards(selectedPerson.id);
-    } catch {
-      setRfidMessage('No se pudo eliminar la tarjeta.');
-    } finally {
-      setRfidLoading(false);
-    }
-  };
+  // const handleDeleteRfid = async (cardId: string) => {
+  //   if (!selectedPerson) return;
+  //   setRfidLoading(true);
+  //   try {
+  //     const response = await fetch(`/api/rfid/${cardId}`, {
+  //       method: 'DELETE'
+  //     });
+  //     const data = await response.json();
+  //     if (!response.ok || !data?.deleted) {
+  //       setRfidMessage(data?.error || 'No se pudo eliminar la tarjeta.');
+  //       return;
+  //     }
+  //     setRfidDeleteCard(null);
+  //     await loadRfidCards(selectedPerson.id);
+  //   } catch {
+  //     setRfidMessage('No se pudo eliminar la tarjeta.');
+  //   } finally {
+  //     setRfidLoading(false);
+  //   }
+  // };
 
   if (effectiveStatus === 'loading') {
     return (
@@ -1105,18 +1113,18 @@ export default function Home() {
             )}
                   </div>
 
-                  {/* RFID */}
-                  <RfidManager
+                  {/* RFID deshabilitado temporalmente */}
+                  {/* <RfidManager
                     personId={selectedPerson?.id || null}
                     onCardRead={(uid) => {
                       setRfidUid(uid);
                     }}
                     onCardAssociated={() => {
                       if (selectedPerson) {
-                        loadRfidCards(selectedPerson.id);
+                        // loadRfidCards(selectedPerson.id);
                       }
                     }}
-                  />
+                  /> */}
 
                   {/* Opciones */}
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -1340,7 +1348,8 @@ export default function Home() {
         </div>
       )}
 
-      {rfidDeleteCard && (
+      {/* RFID deshabilitado temporalmente */}
+      {/* {rfidDeleteCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
@@ -1374,7 +1383,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Create Person Modal */}
       {showCreatePerson && (
@@ -1385,7 +1394,7 @@ export default function Home() {
                 <h3 className="text-lg font-semibold text-gray-900">{editingPerson ? 'Editar persona' : 'Crear nueva persona'}</h3>
                 {!editingPerson && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Paso {createPersonStep === 'data' ? '1' : createPersonStep === 'face' ? '2' : '3'} de 3
+                    Paso {createPersonStep === 'data' ? '1' : createPersonStep === 'face' ? '2' : '2'} de 2
                   </p>
                 )}
               </div>
@@ -1473,7 +1482,8 @@ export default function Home() {
                 <FaceRegistrationPicker
                   onRegister={async (descriptor, imageUrl) => {
                     await handleRegisterFaceWithImage(descriptor, imageUrl);
-                    setCreatePersonStep('rfid');
+                    // RFID deshabilitado - finalizar directamente
+                    // setCreatePersonStep('rfid');
                   }}
                   onRemove={handleRemoveFace}
                   hasSavedFace={!!selectedPerson.faceDescriptor}
@@ -1488,52 +1498,38 @@ export default function Home() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCreatePersonStep('rfid')}
+                    onClick={() => {
+                      setShowCreatePerson(false);
+                      setCreatePersonStep('data');
+                      setNewPersonId(null);
+                      setFormData({ gmailUser: '', nombre: '', empresa: '' });
+                    }}
                     className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
                   >
-                    Omitir
+                    Finalizar
                   </button>
                   {selectedPerson.faceDescriptor && (
                     <button
                       type="button"
-                      onClick={() => setCreatePersonStep('rfid')}
+                      onClick={() => {
+                        setShowCreatePerson(false);
+                        setCreatePersonStep('data');
+                        setNewPersonId(null);
+                        setFormData({ gmailUser: '', nombre: '', empresa: '' });
+                      }}
                       className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition"
                     >
-                      Siguiente
+                      Finalizar
                     </button>
                   )}
                 </div>
               </div>
             )}
 
+            {/* RFID deshabilitado temporalmente - paso omitido */}
             {createPersonStep === 'rfid' && newPersonId && selectedPerson && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-600">Asociar tarjeta RFID (opcional)</p>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    value={rfidUid}
-                    onChange={(event) => setRfidUid(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        handleAssociateRfid();
-                      }
-                    }}
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent min-w-0"
-                    placeholder="UID de tarjeta RFID"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAssociateRfid}
-                    disabled={rfidLoading}
-                    className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition whitespace-nowrap sm:w-auto w-full"
-                  >
-                    Asociar
-                  </button>
-                </div>
-                {rfidMessage && (
-                  <p className="text-xs text-gray-600">{rfidMessage}</p>
-                )}
+                <p className="text-sm text-gray-600">RFID deshabilitado temporalmente</p>
                 <div className="flex justify-end gap-3 pt-4">
                   <button
                     type="button"

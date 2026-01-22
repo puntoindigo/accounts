@@ -41,63 +41,64 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || ''
     }),
-    CredentialsProvider({
-      id: 'rfid',
-      name: 'RFID',
-      credentials: {
-        uid: { label: 'uid', type: 'text' }
-      },
-      async authorize(credentials) {
-        const uid = String(credentials?.uid || '').trim();
-        if (!uid) {
-          await recordActivityEvent({
-            personId: null,
-            email: null,
-            provider: 'rfid',
-            status: 'failed',
-            reason: 'uid_missing',
-            ...(await getRequestMeta())
-          });
-          return null;
-        }
+    // RFID deshabilitado temporalmente
+    // CredentialsProvider({
+    //   id: 'rfid',
+    //   name: 'RFID',
+    //   credentials: {
+    //     uid: { label: 'uid', type: 'text' }
+    //   },
+    //   async authorize(credentials) {
+    //     const uid = String(credentials?.uid || '').trim();
+    //     if (!uid) {
+    //       await recordActivityEvent({
+    //         personId: null,
+    //         email: null,
+    //         provider: 'rfid',
+    //         status: 'failed',
+    //         reason: 'uid_missing',
+    //         ...(await getRequestMeta())
+    //       });
+    //       return null;
+    //     }
 
-        const card = await getRfidCardByUid(uid);
-        if (!card) {
-          await recordActivityEvent({
-            personId: null,
-            email: null,
-            provider: 'rfid',
-            status: 'failed',
-            reason: 'no_match',
-            ...(await getRequestMeta())
-          });
-          return null;
-        }
+    //     const card = await getRfidCardByUid(uid);
+    //     if (!card) {
+    //       await recordActivityEvent({
+    //         personId: null,
+    //         email: null,
+    //         provider: 'rfid',
+    //         status: 'failed',
+    //         reason: 'no_match',
+    //         ...(await getRequestMeta())
+    //       });
+    //       return null;
+    //     }
 
-        const person = await getPerson(card.personId);
-        if (!person || !person.active) {
-          await recordActivityEvent({
-            personId: person?.id ?? null,
-            email: person?.email ?? null,
-            provider: 'rfid',
-            status: 'failed',
-            reason: 'inactive',
-            ...(await getRequestMeta())
-          });
-          return null;
-        }
+    //     const person = await getPerson(card.personId);
+    //     if (!person || !person.active) {
+    //       await recordActivityEvent({
+    //         personId: person?.id ?? null,
+    //         email: person?.email ?? null,
+    //         provider: 'rfid',
+    //         status: 'failed',
+    //         reason: 'inactive',
+    //         ...(await getRequestMeta())
+    //       });
+    //       return null;
+    //     }
 
-        return {
-          id: person.id,
-          name: person.nombre,
-          email: person.email,
-          image: null,
-          empresa: person.empresa,
-          isAdmin: person.isAdmin,
-          provider: 'rfid'
-        };
-      }
-    }),
+    //     return {
+    //       id: person.id,
+    //       name: person.nombre,
+    //       email: person.email,
+    //       image: null,
+    //       empresa: person.empresa,
+    //       isAdmin: person.isAdmin,
+    //       provider: 'rfid'
+    //     };
+    //   }
+    // }),
     CredentialsProvider({
       id: 'face',
       name: 'Face Recognition',

@@ -28,16 +28,17 @@ function EmbedStartContent() {
   const selectedMethod = useMemo(() => searchParams.get('method') || 'google', [searchParams]);
   const showGoogle = selectedMethod !== 'face' && selectedMethod !== 'rfid';
   const showFace = selectedMethod !== 'google' && selectedMethod !== 'rfid';
-  const showRfid = selectedMethod === 'rfid';
+  const showRfid = false; // RFID deshabilitado temporalmente // selectedMethod === 'rfid';
   const [clearingSession, setClearingSession] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [lastFailedFaceDescriptor, setLastFailedFaceDescriptor] = useState<number[] | null>(null);
   const [loginInitiated, setLoginInitiated] = useState(false);
   const [needsFreshLogin, setNeedsFreshLogin] = useState(true);
-  const [rfidUid, setRfidUid] = useState('');
-  const [rfidLoading, setRfidLoading] = useState(false);
-  const rfidInputRef = useRef<HTMLInputElement>(null);
+  // RFID deshabilitado temporalmente
+  // const [rfidUid, setRfidUid] = useState('');
+  // const [rfidLoading, setRfidLoading] = useState(false);
+  // const rfidInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (status === 'authenticated' && needsFreshLogin && !loginInitiated) {
@@ -51,11 +52,12 @@ function EmbedStartContent() {
     }
   }, [needsFreshLogin, loginInitiated, status]);
 
-  useEffect(() => {
-    if (showRfid) {
-      rfidInputRef.current?.focus();
-    }
-  }, [showRfid]);
+  // RFID deshabilitado temporalmente
+  // useEffect(() => {
+  //   if (showRfid) {
+  //     rfidInputRef.current?.focus();
+  //   }
+  // }, [showRfid]);
 
   const handleFaceLogin = async (descriptor: number[]) => {
     if (lastFailedFaceDescriptor && isSameFace(descriptor, lastFailedFaceDescriptor)) {
@@ -79,27 +81,28 @@ function EmbedStartContent() {
     window.location.href = `/embed/callback?origin=${encodeURIComponent(origin)}`;
   };
 
-  const handleRfidLogin = async () => {
-    const normalized = rfidUid.trim().replace(/\s+/g, '');
-    if (!normalized) {
-      setAuthMessage('Ingresá un UID válido.');
-      return;
-    }
-    setAuthMessage(null);
-    setLoginInitiated(true);
-    setNeedsFreshLogin(false);
-    setRfidLoading(true);
-    const result = await signIn('rfid', {
-      redirect: false,
-      uid: normalized
-    });
-    setRfidLoading(false);
-    if (!result?.ok) {
-      setAuthMessage('No autorizado por RFID. Verificá la tarjeta.');
-      return;
-    }
-    window.location.href = `/embed/callback?origin=${encodeURIComponent(origin)}`;
-  };
+  // RFID deshabilitado temporalmente
+  // const handleRfidLogin = async () => {
+  //   const normalized = rfidUid.trim().replace(/\s+/g, '');
+  //   if (!normalized) {
+  //     setAuthMessage('Ingresá un UID válido.');
+  //     return;
+  //   }
+  //   setAuthMessage(null);
+  //   setLoginInitiated(true);
+  //   setNeedsFreshLogin(false);
+  //   setRfidLoading(true);
+  //   const result = await signIn('rfid', {
+  //     redirect: false,
+  //     uid: normalized
+  //   });
+  //   setRfidLoading(false);
+  //   if (!result?.ok) {
+  //     setAuthMessage('No autorizado por RFID. Verificá la tarjeta.');
+  //     return;
+  //   }
+  //   window.location.href = `/embed/callback?origin=${encodeURIComponent(origin)}`;
+  // };
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex items-center justify-center px-4 py-10">
@@ -174,7 +177,8 @@ function EmbedStartContent() {
           </div>
         )}
 
-        {showRfid && (
+        {/* RFID deshabilitado temporalmente */}
+        {/* {showRfid && (
           <div className="rounded-lg border border-slate-200 p-4 space-y-3">
             <h2 className="text-sm font-semibold text-slate-700">Tarjeta RFID</h2>
             <p className="text-xs text-slate-500">
@@ -202,7 +206,7 @@ function EmbedStartContent() {
               {rfidLoading ? 'Validando...' : 'Validar con RFID'}
             </button>
           </div>
-        )}
+        )} */}
 
         {authMessage && (
           <p className="text-xs text-red-600 text-center">{authMessage}</p>
