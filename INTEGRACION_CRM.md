@@ -2,12 +2,140 @@
 
 Esta guía explica cómo integrar Accounts con un sistema CRM externo para autenticación y verificación de usuarios.
 
-## Configuración
+## Dos Formas de Integración
 
-### Variables de Entorno
+Accounts ofrece **dos formas** de integrar el login:
 
-Agrega la siguiente variable de entorno en Vercel:
+1. **Widget Embed (Frontend)** - Similar a "Login with Google", se abre un popup para autenticación
+2. **API REST (Backend)** - Autenticación server-to-server mediante endpoints API
 
+---
+
+## 1. Widget Embed (Recomendado para Frontend)
+
+Esta es la forma más simple y similar a cómo funciona "Login with Google". El usuario hace clic en un botón, se abre un popup, se autentica, y tu aplicación recibe un token.
+
+### Cómo Funciona
+
+1. Incluís el widget JavaScript en tu página
+2. El usuario hace clic en "Acceder con Accounts"
+3. Se abre un popup con opciones de login (Google, Facial)
+4. Después de autenticarse, tu aplicación recibe un token JWT
+5. Validás el token en tu backend
+
+### Implementación
+
+#### Paso 1: Incluir el Widget
+
+```html
+<!-- En tu HTML -->
+<div id="accounts-login-beta-01"></div>
+
+<script
+  src="https://accounts.puntoindigo.com/embed/accounts-login.beta.01.js"
+  data-accounts-base="https://accounts.puntoindigo.com"
+  data-target="accounts-login-beta-01"
+  data-accounts-embed
+></script>
+```
+
+#### Paso 2: Manejar el Token
+
+```javascript
+// Configurar callbacks
+window.AccountsLoginBeta01 = {
+  onSuccess: (data) => {
+    // data.token contiene el JWT
+    // data.user contiene { email, name, isAdmin }
+    
+    // Enviar token a tu backend
+    fetch('/api/auth/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: data.token })
+    })
+    .then(response => response.json())
+    .then(result => {
+      // Usuario autenticado en tu sistema
+      console.log('Usuario autenticado:', result);
+    });
+  },
+  onError: (error) => {
+    // Manejar error
+    console.error('Error de autenticación:', error.reason);
+  }
+};
+```
+
+#### Paso 3: Validar el Token en tu Backend
+
+El token es un JWT firmado con `ACCOUNTS_EMBED_SECRET`. Necesitás validarlo:
+
+```javascript
+// Node.js ejemplo
+const jwt = require('jsonwebtoken');
+
+function validateAccountsToken(token) {
+  const secret = process.env.ACCOUNTS_EMBED_SECRET; // Mismo secret que en Accounts
+  try {
+    const payload = jwt.verify(token, secret);
+    // payload contiene: { email, name, isAdmin, iat, exp }
+    return payload;
+  } catch (error) {
+    return null; // Token inválido o expirado
+  }
+}
+
+// En tu endpoint
+app.post('/api/auth/accounts', (req, res) => {
+  const { token } = req.body;
+  const payload = validateAccountsToken(token);
+  
+  if (!payload) {
+    return res.status(401).json({ error: 'Token inválido' });
+  }
+  
+  // Usuario autenticado
+  res.json({ user: payload });
+});
+```
+
+### Configuración
+
+**Variable de entorno en Accounts (Vercel):**
+```env
+ACCOUNTS_EMBED_SECRET=tu-secret-compartido
+```
+
+**Variable de entorno en tu aplicación:**
+```env
+ACCOUNTS_EMBED_SECRET=tu-secret-compartido  # Mismo valor que en Accounts
+```
+
+### Ventajas del Widget Embed
+
+- ✅ Experiencia de usuario familiar (popup como Google)
+- ✅ No necesitás manejar formularios de login
+- ✅ Soporta múltiples métodos (Google, Facial)
+- ✅ El token expira automáticamente (5 minutos)
+- ✅ Fácil de implementar
+
+---
+
+## 2. API REST (Para Backend/Server-to-Server)
+
+Si necesitás autenticar usuarios desde tu backend sin interacción del usuario, usá estos endpoints.
+
+### Cuándo Usar API REST
+
+- Autenticación programática (sin usuario presente)
+- Sincronización de usuarios
+- Verificación de estado de usuarios
+- Integración backend-to-backend
+
+### Configuración
+
+**Variable de entorno en Accounts (Vercel):**
 ```env
 CRM_API_TOKEN=tu-token-secreto-aqui
 ```
@@ -218,9 +346,26 @@ Content-Type: application/json
 
 ---
 
+## Comparación: Widget vs API
+
+| Característica | Widget Embed | API REST |
+|----------------|--------------|----------|
+| **Interacción usuario** | ✅ Requiere popup | ❌ Sin interacción |
+| **Métodos soportados** | Google, Facial | Email, Facial (descriptor) |
+| **Experiencia UX** | Familiar (como Google) | N/A (backend) |
+| **Token JWT** | ✅ Automático | ❌ No genera token |
+| **Uso típico** | Frontend web | Backend/scripts |
+| **Complejidad** | Baja | Media |
+
+---
+
 ## Ejemplos de Uso
 
-### JavaScript/TypeScript
+### Widget Embed (Frontend)
+
+Ver sección "1. Widget Embed" arriba.
+
+### API REST (Backend)
 
 ```typescript
 const CRM_API_TOKEN = 'tu-token-secreto';
