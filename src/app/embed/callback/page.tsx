@@ -8,27 +8,9 @@ function EmbedCallbackContent() {
   const searchParams = useSearchParams();
   const origin = useMemo(() => searchParams.get('origin') || '*', [searchParams]);
   const [status, setStatus] = useState('Validando acceso...');
-  const [awaitingAck, setAwaitingAck] = useState(false);
 
   useEffect(() => {
     let active = true;
-    let ackTimeout: ReturnType<typeof setTimeout> | null = null;
-    const handleAck = (event: MessageEvent) => {
-      if (event.origin !== origin) {
-        return;
-      }
-      if (event.data?.type === 'accounts-ack') {
-        setAwaitingAck(false);
-        setStatus('Acceso confirmado. Podés volver a la app.');
-        if (ackTimeout) {
-          clearTimeout(ackTimeout);
-        }
-        signOut({ redirect: false });
-        window.close();
-      }
-    };
-
-    window.addEventListener('message', handleAck);
     const run = async () => {
       try {
         const response = await fetch('/api/embed/token', { cache: 'no-store' });
@@ -45,14 +27,31 @@ function EmbedCallbackContent() {
             { type: 'accounts-login', token: data.token, user: data.user },
             origin
           );
-          setAwaitingAck(true);
           setStatus('Acceso enviado. Cerrando...');
-          // Cerrar popup después de un breve delay para dar tiempo al ACK
-          ackTimeout = setTimeout(() => {
-            setAwaitingAck(false);
-            signOut({ redirect: false });
-            window.close();
-          }, 1000); // Reducido a 1 segundo
+          // Cerrar popup inmediatamente después de enviar el token
+          // No esperar ACK para evitar que el popup quede abierto
+          // Cerrar sesión y popup en paralelo para mayor velocidad
+          Promise.all([
+            signOut({ redirect: false }).catch(() => {}),
+            new Promise(resolve => setTimeout(resolve, 50))
+          ]).then(() => {
+            // Intentar cerrar el popup de múltiples formas
+            try {
+              window.close();
+            } catch (e) {
+              // Ignorar errores
+            }
+            // Si después de 200ms el popup sigue abierto, redirigir a about:blank
+            setTimeout(() => {
+              if (!document.hidden) {
+                try {
+                  window.location.href = 'about:blank';
+                } catch (e) {
+                  // Ignorar errores
+                }
+              }
+            }, 200);
+          });
           return;
         }
         setStatus('Acceso validado, pero no detectamos la app. Abrí desde el login.');
@@ -82,10 +81,6 @@ function EmbedCallbackContent() {
     run();
     return () => {
       active = false;
-      window.removeEventListener('message', handleAck);
-      if (ackTimeout) {
-        clearTimeout(ackTimeout);
-      }
     };
   }, [origin]);
 

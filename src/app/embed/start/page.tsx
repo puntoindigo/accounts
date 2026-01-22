@@ -15,7 +15,10 @@ const faceDistance = (a: number[], b: number[]) => {
   return Math.sqrt(sum);
 };
 
-const isSameFace = (a: number[], b: number[], threshold = 0.45) =>
+// Usar el mismo threshold que el backend (0.6)
+// Importar desde utils para mantener consistencia
+const FACE_MATCH_THRESHOLD = 0.6;
+const isSameFace = (a: number[], b: number[], threshold = FACE_MATCH_THRESHOLD) =>
   faceDistance(a, b) < threshold;
 
 function EmbedStartContent() {
@@ -72,7 +75,13 @@ function EmbedStartContent() {
     });
 
     if (!result?.ok) {
-      setAuthMessage('No autorizado por reconocimiento facial. Reintentá con Google.');
+      // Mensaje más específico basado en el error
+      const errorMsg = result?.error || 'unknown';
+      if (errorMsg.includes('no_match') || errorMsg.includes('not_found')) {
+        setAuthMessage('Rostro no reconocido. Verificá que tengas un rostro registrado o usá Google.');
+      } else {
+        setAuthMessage('No autorizado por reconocimiento facial. Reintentá con Google.');
+      }
       setLastFailedFaceDescriptor(descriptor);
       return;
     }
