@@ -7,8 +7,10 @@ Guía para integrar Accounts con sistemas CRM externos usando el Widget Embed, s
 1. Incluís el widget JavaScript en tu página
 2. El usuario hace clic en "Acceder con Accounts"
 3. Se abre un popup con opciones de login (Google, Facial)
-4. Después de autenticarse, tu aplicación recibe un token JWT
-5. Validás el token en tu backend
+4. **Accounts valida la identidad** del usuario (existe y está activo)
+5. Después de autenticarse, tu aplicación recibe un token JWT
+6. **Validás el token en tu backend** (verificás que es válido)
+7. **Verificás permisos en tu app** (verificás que ese usuario tiene acceso a tu aplicación)
 
 ## Implementación
 
@@ -94,14 +96,26 @@ function verifyAccountsToken(token, secret) {
 }
 
 // En tu endpoint
-app.post('/api/auth/accounts', (req, res) => {
+app.post('/api/auth/accounts', async (req, res) => {
   const { token } = req.body;
   const secret = process.env.ACCOUNTS_EMBED_SECRET;
-  const payload = verifyAccountsToken(token, secret);
   
+  // Paso 1: Validar el token (verificar que viene de Accounts)
+  const payload = verifyAccountsToken(token, secret);
   if (!payload) {
     return res.status(401).json({ error: 'Token inválido o expirado' });
   }
+  
+  // Paso 2: Verificar que el usuario tiene acceso a tu aplicación
+  // Esto es CRÍTICO: Accounts solo valida la identidad, 
+  // tu app debe verificar permisos/autorización
+  const userHasAccess = await checkUserAccess(payload.email);
+  if (!userHasAccess) {
+    return res.status(403).json({ error: 'Usuario no tiene acceso a esta aplicación' });
+  }
+  
+  // Paso 3: Crear sesión en tu aplicación
+  const session = await createSession(payload.email);
   
   res.json({ 
     authenticated: true,
@@ -109,9 +123,24 @@ app.post('/api/auth/accounts', (req, res) => {
       email: payload.email,
       name: payload.name,
       isAdmin: payload.isAdmin
-    }
+    },
+    session
   });
 });
+
+// Función de ejemplo: verificar acceso del usuario
+async function checkUserAccess(email) {
+  // Consultar tu base de datos para ver si el usuario tiene acceso
+  // Ejemplo:
+  // const user = await db.users.findOne({ email });
+  // return user && user.active && user.hasAccessToApp;
+  
+  // O consultar una lista de emails permitidos:
+  // const allowedEmails = process.env.ALLOWED_EMAILS?.split(',') || [];
+  // return allowedEmails.includes(email);
+  
+  return true; // Implementar según tu lógica
+}
 ```
 
 ## Configuración
@@ -133,18 +162,62 @@ ACCOUNTS_EMBED_SECRET=tu-secret-compartido
 }
 ```
 
-## Flujo
+## Flujo Completo
 
 ```
-Usuario hace clic → Popup se abre → Usuario se autentica → 
-Token JWT se genera → Tu frontend recibe token → 
-Envías token a tu backend → Backend valida token → 
-Usuario autenticado ✅
+1. Usuario hace clic en "Acceder con Accounts"
+   ↓
+2. Popup se abre en Accounts
+   ↓
+3. Usuario se autentica (Google o Facial)
+   ↓
+4. Accounts valida IDENTIDAD (usuario existe y está activo)
+   ↓
+5. Accounts genera token JWT y lo envía a tu frontend
+   ↓
+6. Tu frontend envía token a tu backend
+   ↓
+7. Tu backend VALIDA el token (verifica firma y expiración)
+   ↓
+8. Tu backend VERIFICA PERMISOS (verifica que el usuario tiene acceso a tu app)
+   ↓
+9. Si todo está OK → Usuario autenticado en tu app ✅
 ```
+
+⚠️ **Importante:** Accounts solo valida la **identidad** del usuario (que existe y está activo). Tu aplicación debe verificar la **autorización** (que tiene acceso a tu app).
 
 ## Seguridad
 
 - Token firmado con HMAC-SHA256
 - Expira en 5 minutos
 - Siempre validá el token en tu backend
+- **Siempre verificá permisos después de validar el token**
 - Usá HTTPS para todas las comunicaciones
+
+## Verificación de Permisos
+
+Accounts valida la **identidad** del usuario, pero tu aplicación debe verificar la **autorización**. Algunas opciones:
+
+### Opción 1: Lista de emails permitidos
+```javascript
+const allowedEmails = process.env.ALLOWED_EMAILS?.split(',') || [];
+if (!allowedEmails.includes(payload.email)) {
+  return res.status(403).json({ error: 'Acceso denegado' });
+}
+```
+
+### Opción 2: Consultar tu base de datos
+```javascript
+const user = await db.users.findOne({ email: payload.email });
+if (!user || !user.active || !user.hasAccessToApp) {
+  return res.status(403).json({ error: 'Acceso denegado' });
+}
+```
+
+### Opción 3: Consultar API externa
+```javascript
+const hasAccess = await fetch(`https://tu-api.com/check-access?email=${payload.email}`);
+if (!hasAccess.ok) {
+  return res.status(403).json({ error: 'Acceso denegado' });
+}
+```
