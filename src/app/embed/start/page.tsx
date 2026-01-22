@@ -29,6 +29,7 @@ function EmbedStartContent() {
     [searchParams]
   );
   const selectedMethod = useMemo(() => searchParams.get('method') || 'google', [searchParams]);
+  const errorParam = useMemo(() => searchParams.get('error'), [searchParams]);
   const showGoogle = selectedMethod !== 'face' && selectedMethod !== 'rfid';
   const showFace = selectedMethod !== 'google' && selectedMethod !== 'rfid';
   const showRfid = false; // RFID deshabilitado temporalmente // selectedMethod === 'rfid';
@@ -43,8 +44,32 @@ function EmbedStartContent() {
   // const [rfidLoading, setRfidLoading] = useState(false);
   // const rfidInputRef = useRef<HTMLInputElement>(null);
 
+  // Detectar error de acceso denegado y forzar cierre de sesión
   useEffect(() => {
-    if (status === 'authenticated' && needsFreshLogin && !loginInitiated) {
+    if (errorParam === 'AccessDenied') {
+      setAuthMessage('Acceso denegado. Verificá que tu cuenta esté autorizada.');
+      // Forzar cierre de sesión inmediatamente
+      if (status === 'authenticated') {
+        setClearingSession(true);
+        signOut({ redirect: false }).finally(() => {
+          setClearingSession(false);
+          setNeedsFreshLogin(false);
+          // Limpiar el parámetro de error de la URL sin recargar
+          const url = new URL(window.location.href);
+          url.searchParams.delete('error');
+          window.history.replaceState({}, '', url.toString());
+        });
+      } else {
+        // Si ya no hay sesión, solo limpiar el parámetro
+        const url = new URL(window.location.href);
+        url.searchParams.delete('error');
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [errorParam, status]);
+
+  useEffect(() => {
+    if (status === 'authenticated' && needsFreshLogin && !loginInitiated && errorParam !== 'AccessDenied') {
       setClearingSession(true);
       setNotice('Reiniciando sesión para validar tu identidad...');
       signOut({ redirect: false }).finally(() => {
@@ -53,7 +78,7 @@ function EmbedStartContent() {
         setNeedsFreshLogin(false);
       });
     }
-  }, [needsFreshLogin, loginInitiated, status]);
+  }, [needsFreshLogin, loginInitiated, status, errorParam]);
 
   // RFID deshabilitado temporalmente
   // useEffect(() => {
@@ -218,7 +243,9 @@ function EmbedStartContent() {
         )} */}
 
         {authMessage && (
-          <p className="text-xs text-red-600 text-center">{authMessage}</p>
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-sm font-medium text-red-800 text-center">{authMessage}</p>
+          </div>
         )}
 
         <div className="text-center">

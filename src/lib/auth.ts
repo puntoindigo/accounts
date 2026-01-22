@@ -34,7 +34,7 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
   pages: {
     signIn: '/',
-    error: '/'
+    error: '/' // Se manejará dinámicamente en el callback
   },
   providers: [
     GoogleProvider({
@@ -207,10 +207,26 @@ export const authOptions: NextAuthOptions = {
             reason: !person ? 'not_registered' : 'inactive',
             ...(await getRequestMeta())
           });
+          // Si estamos en una ruta de embed, redirigir a /embed/start con el error
+          // Esto se maneja en el redirect callback
           return false;
         }
       }
       return true;
+    },
+    async redirect({ url, baseUrl }) {
+      // Si la URL contiene /embed/, mantener la ruta de embed
+      if (url.includes('/embed/')) {
+        // Si hay un error, redirigir a /embed/start con el error
+        if (url.includes('error=')) {
+          const urlObj = new URL(url, baseUrl);
+          const error = urlObj.searchParams.get('error');
+          return `${baseUrl}/embed/start?error=${error || 'AccessDenied'}`;
+        }
+        return url.startsWith('/') ? `${baseUrl}${url}` : url;
+      }
+      // Para otras rutas, usar el comportamiento por defecto
+      return url.startsWith('/') ? `${baseUrl}${url}` : url;
     },
     async jwt({ token, user, account }) {
       if (user) {
