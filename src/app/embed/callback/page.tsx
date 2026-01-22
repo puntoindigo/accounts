@@ -46,11 +46,13 @@ function EmbedCallbackContent() {
             origin
           );
           setAwaitingAck(true);
-          setStatus('Esperando confirmación de la app...');
+          setStatus('Acceso enviado. Cerrando...');
+          // Cerrar popup después de un breve delay para dar tiempo al ACK
           ackTimeout = setTimeout(() => {
             setAwaitingAck(false);
-            setStatus('No pudimos confirmar en la app. Cerrá y reintentá.');
-          }, 4000);
+            signOut({ redirect: false });
+            window.close();
+          }, 1000); // Reducido a 1 segundo
           return;
         }
         setStatus('Acceso validado, pero no detectamos la app. Abrí desde el login.');
@@ -68,7 +70,12 @@ function EmbedCallbackContent() {
           );
         }
         const reason = error instanceof Error ? error.message : 'token_error';
-        setStatus(`No pudimos validar el acceso (${reason}). Cerrá y reintentá.`);
+        setStatus(`Error: ${reason}. Cerrando...`);
+        // Cerrar popup automáticamente después de enviar el error
+        setTimeout(() => {
+          signOut({ redirect: false });
+          window.close();
+        }, 1500);
       }
     };
 
