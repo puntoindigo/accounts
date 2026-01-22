@@ -132,3 +132,15 @@ export default function RfidPage() {
     </div>
   );
 }
+*/
+// Componente deshabilitado - mostrar mensaje simple
+export default function RfidPage() {
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 px-4 py-10 flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-semibold mb-2">RFID Deshabilitado</h1>
+        <p className="text-sm text-slate-600">Esta funcionalidad está temporalmente deshabilitada.</p>
+      </div>
+    </div>
+  );
+}

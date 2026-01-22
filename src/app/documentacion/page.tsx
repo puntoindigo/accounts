@@ -193,6 +193,33 @@ export default function DocumentacionPage() {
       ]
     },
     {
+      title: '🔗 Integración con CRM',
+      items: [
+        {
+          title: 'Guía de integración usando Widget Embed',
+          description: 'Documentación completa para integrar Accounts en sistemas CRM externos usando el Widget Embed, similar a "Login with Google". Incluye implementación, validación de tokens, y ejemplos de código.',
+          markdownFile: 'integracion-crm.md',
+          details: [
+            '📄 Archivo: integracion-crm.md',
+            '📋 Contenido:',
+            '  • Cómo funciona el Widget Embed',
+            '  • Implementación paso a paso',
+            '  • Validación de tokens JWT (Node.js y Python)',
+            '  • Configuración y variables de entorno',
+            '  • Flujo completo de autenticación',
+            '  • Ejemplos de código completos',
+            '  • Troubleshooting y seguridad',
+            '',
+            '🎯 Este documento está diseñado para:',
+            '  • Desarrolladores que integren Accounts en su CRM',
+            '  • Equipos que necesiten autenticación externa',
+            '  • Sistemas que requieran login similar a Google OAuth',
+            '  • Documentación de integración frontend'
+          ]
+        }
+      ]
+    },
+    {
       title: 'Puntos a completar (12)',
       items: [
         {

@@ -16,7 +16,8 @@ export async function GET(
   // Lista blanca de archivos permitidos
   const allowedFiles = [
     'prompt-completo-ia.md',
-    'guia-completa-desarrollo.md'
+    'guia-completa-desarrollo.md',
+    'integracion-crm.md'
   ];
 
   if (!allowedFiles.includes(file)) {
