@@ -322,6 +322,7 @@ export default function Home() {
   const [activityVisibleCount, setActivityVisibleCount] = useState(ACTIVITY_PAGE_SIZE);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentView, setCurrentView] = useState<'persons' | 'activity'>('persons');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const selectedPerson = useMemo(
     () => persons.find(person => person.id === selectedPersonId) || null,
@@ -790,11 +791,12 @@ export default function Home() {
             onClick={() => {
               setCurrentView('persons');
               setSelectedPersonId(null);
+              setMobileMenuOpen(false);
             }}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition touch-manipulation ${
               currentView === 'persons'
                 ? 'bg-gray-100 text-gray-900'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                : 'text-gray-600 active:bg-gray-50 lg:hover:bg-gray-50 lg:hover:text-gray-900'
             }`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
