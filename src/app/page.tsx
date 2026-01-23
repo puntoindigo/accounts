@@ -575,16 +575,52 @@ export default function Home() {
   };
 
   const handleUpdatePerson = async (id: string, updates: Partial<Person>) => {
+    const person = persons.find(p => p.id === id);
+    if (!person) return;
+
+    // Validaciones en frontend antes de intentar deshabilitar
+    if (updates.active === false) {
+      const alwaysAllowedEmails = (process.env.NEXT_PUBLIC_ALWAYS_ALLOWED_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+      const personEmail = person.email.toLowerCase();
+      
+      // Verificar si es el usuario actual
+      if (effectiveSession?.user?.email && effectiveSession.user.email.toLowerCase() === personEmail) {
+        setRegisterMessage('No podés deshabilitar tu propia cuenta. Esto te dejaría sin acceso al sistema.');
+        return;
+      }
+
+      // Verificar si está en ALWAYS_ALLOWED_EMAILS (si está disponible en el frontend)
+      if (alwaysAllowedEmails.length > 0 && alwaysAllowedEmails.includes(personEmail)) {
+        setRegisterMessage('Este usuario está en la lista de emails siempre permitidos y no puede ser deshabilitado. Esto es necesario para mantener acceso de administración.');
+        return;
+      }
+
+      // Verificar si es el último admin activo
+      if (person.isAdmin) {
+        const activeAdmins = persons.filter(p => p.isAdmin && p.active && p.id !== id);
+        if (activeAdmins.length === 0) {
+          setRegisterMessage('No se puede deshabilitar el último administrador activo. Necesitás al menos un administrador activo en el sistema.');
+          return;
+        }
+      }
+    }
+
     const response = await fetch(`/api/employees/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
     });
+    
     if (response.ok) {
       const data = await response.json();
       if (data?.person) {
         setPersons(prev => prev.map(person => (person.id === data.person.id ? data.person : person)));
+        setRegisterMessage(null); // Limpiar mensaje de error si hay éxito
       }
+    } else {
+      // Mostrar error del backend
+      const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+      setRegisterMessage(errorData?.error || 'No se pudo actualizar la persona.');
     }
   };
 
@@ -965,22 +1001,62 @@ export default function Home() {
                             </div>
                           </div>
                               <div className="relative group">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleUpdatePerson(person.id, { active: !person.active });
-                            }}
-                                  className={`inline-flex items-center gap-2 text-xs px-2.5 py-1 rounded-full border flex-shrink-0 cursor-pointer ${
-                              person.active
-                                      ? 'border-green-200 bg-green-50 text-green-700'
-                                      : 'border-gray-300 bg-gray-100 text-gray-500'
-                            }`}
-                                  title={person.active ? 'Desactivar' : 'Reactivar'}
-                          >
-                                  <span className={`inline-block h-2 w-2 rounded-full ${person.active ? 'bg-green-500' : 'bg-gray-400'}`} />
-                                  {person.active ? 'Activo' : 'Inactivo'}
-                          </button>
+                          {(() => {
+                            const alwaysAllowedEmails = (process.env.NEXT_PUBLIC_ALWAYS_ALLOWED_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+                            const personEmail = person.email.toLowerCase();
+                            const isCurrentUser = effectiveSession?.user?.email && effectiveSession.user.email.toLowerCase() === personEmail;
+                            const isAlwaysAllowed = alwaysAllowedEmails.length > 0 && alwaysAllowedEmails.includes(personEmail);
+                            const isLastAdmin = person.isAdmin && persons.filter(p => p.isAdmin && p.active && p.id !== person.id).length === 0;
+                            const canDisable = !isCurrentUser && !isAlwaysAllowed && !isLastAdmin;
+                            
+                            return (
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  if (!canDisable && !person.active) {
+                                    // Solo permitir activar si no puede deshabilitar
+                                    handleUpdatePerson(person.id, { active: true });
+                                  } else if (canDisable) {
+                                    handleUpdatePerson(person.id, { active: !person.active });
+                                  } else {
+                                    // Mostrar mensaje de advertencia
+                                    if (isCurrentUser) {
+                                      setRegisterMessage('No podés deshabilitar tu propia cuenta. Esto te dejaría sin acceso al sistema.');
+                                    } else if (isAlwaysAllowed) {
+                                      setRegisterMessage('Este usuario está en la lista de emails siempre permitidos y no puede ser deshabilitado. Esto es necesario para mantener acceso de administración.');
+                                    } else if (isLastAdmin) {
+                                      setRegisterMessage('No se puede deshabilitar el último administrador activo. Necesitás al menos un administrador activo en el sistema.');
+                                    }
+                                  }
+                                }}
+                                disabled={!canDisable && !person.active}
+                                className={`inline-flex items-center gap-2 text-xs px-2.5 py-1 rounded-full border flex-shrink-0 ${
+                                  person.active
+                                    ? canDisable
+                                      ? 'border-green-200 bg-green-50 text-green-700 cursor-pointer'
+                                      : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                                    : 'border-gray-300 bg-gray-100 text-gray-500 cursor-pointer'
+                                }`}
+                                title={
+                                  !canDisable && person.active
+                                    ? isCurrentUser
+                                      ? 'No podés deshabilitar tu propia cuenta'
+                                      : isAlwaysAllowed
+                                      ? 'Este usuario está en la lista de emails siempre permitidos'
+                                      : isLastAdmin
+                                      ? 'No se puede deshabilitar el último administrador activo'
+                                      : 'No se puede deshabilitar'
+                                    : person.active
+                                    ? 'Desactivar'
+                                    : 'Reactivar'
+                                }
+                              >
+                                <span className={`inline-block h-2 w-2 rounded-full ${person.active ? 'bg-green-500' : 'bg-gray-400'}`} />
+                                {person.active ? 'Activo' : 'Inactivo'}
+                              </button>
+                            );
+                          })()}
                                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                                   {person.active ? 'Desactivar' : 'Reactivar'}
                                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
@@ -1159,22 +1235,61 @@ export default function Home() {
                         </svg>
                         Eliminar persona
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleUpdatePerson(selectedPerson.id, { active: !selectedPerson.active });
-                        }}
-                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg border text-sm font-medium transition ${
-                          selectedPerson.active
-                            ? 'border-yellow-300 text-yellow-700 hover:bg-yellow-50'
-                            : 'border-green-300 text-green-700 hover:bg-green-50'
-                        }`}
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={selectedPerson.active ? "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" : "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"} />
-                        </svg>
-                        {selectedPerson.active ? 'Suspender acceso' : 'Activar acceso'}
-                      </button>
+                      {(() => {
+                        const alwaysAllowedEmails = (process.env.NEXT_PUBLIC_ALWAYS_ALLOWED_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+                        const personEmail = selectedPerson.email.toLowerCase();
+                        const isCurrentUser = effectiveSession?.user?.email && effectiveSession.user.email.toLowerCase() === personEmail;
+                        const isAlwaysAllowed = alwaysAllowedEmails.length > 0 && alwaysAllowedEmails.includes(personEmail);
+                        const isLastAdmin = selectedPerson.isAdmin && persons.filter(p => p.isAdmin && p.active && p.id !== selectedPerson.id).length === 0;
+                        const canDisable = !isCurrentUser && !isAlwaysAllowed && !isLastAdmin;
+                        
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!canDisable && !selectedPerson.active) {
+                                // Solo permitir activar si no puede deshabilitar
+                                handleUpdatePerson(selectedPerson.id, { active: true });
+                              } else if (canDisable) {
+                                handleUpdatePerson(selectedPerson.id, { active: !selectedPerson.active });
+                              } else {
+                                // Mostrar mensaje de advertencia
+                                if (isCurrentUser) {
+                                  setRegisterMessage('No podés deshabilitar tu propia cuenta. Esto te dejaría sin acceso al sistema.');
+                                } else if (isAlwaysAllowed) {
+                                  setRegisterMessage('Este usuario está en la lista de emails siempre permitidos y no puede ser deshabilitado. Esto es necesario para mantener acceso de administración.');
+                                } else if (isLastAdmin) {
+                                  setRegisterMessage('No se puede deshabilitar el último administrador activo. Necesitás al menos un administrador activo en el sistema.');
+                                }
+                              }
+                            }}
+                            disabled={!canDisable && !selectedPerson.active}
+                            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                              selectedPerson.active
+                                ? canDisable
+                                  ? 'border-yellow-300 text-yellow-700 hover:bg-yellow-50'
+                                  : 'border-gray-300 text-gray-500 bg-gray-50 cursor-not-allowed'
+                                : 'border-green-300 text-green-700 hover:bg-green-50'
+                            }`}
+                            title={
+                              !canDisable && selectedPerson.active
+                                ? isCurrentUser
+                                  ? 'No podés deshabilitar tu propia cuenta'
+                                  : isAlwaysAllowed
+                                  ? 'Este usuario está en la lista de emails siempre permitidos'
+                                  : isLastAdmin
+                                  ? 'No se puede deshabilitar el último administrador activo'
+                                  : 'No se puede deshabilitar'
+                                : undefined
+                            }
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={selectedPerson.active ? "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" : "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"} />
+                            </svg>
+                            {selectedPerson.active ? 'Suspender acceso' : 'Activar acceso'}
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
